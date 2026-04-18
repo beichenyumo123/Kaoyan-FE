@@ -1,0 +1,822 @@
+<template>
+  <div
+    class="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 flex flex-col relative"
+  >
+    <!-- 顶部导航栏 (Header) -->
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200">
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+        <!-- Logo 区域 -->
+        <div class="flex items-center gap-2 cursor-pointer" @click="goToHome">
+          <div
+            class="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center transform transition hover:scale-105"
+          >
+            <span class="text-white font-bold text-lg">研</span>
+          </div>
+          <span class="text-xl font-bold tracking-tight">考研交流社区</span>
+        </div>
+
+        <!-- 搜索框 -->
+        <div class="hidden md:flex flex-1 max-w-md mx-8 relative group">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search
+              class="h-4 w-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors"
+            />
+          </div>
+          <input
+            v-model="searchQuery"
+            @keydown.enter="handleSearch"
+            type="text"
+            class="block w-full pl-10 pr-3 py-2 border border-zinc-200 rounded-lg leading-5 bg-zinc-100 placeholder-zinc-500 focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all sm:text-sm"
+            placeholder="搜索帖子、资料或用户... (按回车搜索)"
+          />
+        </div>
+
+        <!-- 右侧用户操作 -->
+        <div class="flex items-center gap-5">
+          <button
+            @click="goToMessageCenter"
+            class="text-zinc-500 hover:text-zinc-900 transition-colors relative"
+          >
+            <Bell class="w-5 h-5" />
+            <span
+              v-if="unreadCount > 0"
+              class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </button>
+
+          <button
+            @click="goToUserCenter"
+            class="flex items-center gap-2 transform transition hover:scale-105"
+          >
+            <img
+              :src="
+                currentUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
+              "
+              alt="Avatar"
+              class="w-8 h-8 rounded-full border border-zinc-200 bg-zinc-100 object-cover"
+            />
+          </button>
+
+          <button
+            @click="goToCreatePost"
+            class="hidden md:block bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 hover:-translate-y-0.5 hover:shadow-md transition-all"
+          >
+            发布帖子
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 移动端悬浮发布按钮 -->
+    <button
+      @click="goToCreatePost"
+      class="md:hidden fixed bottom-6 right-6 z-40 w-14 h-14 bg-zinc-900 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-zinc-800 hover:-translate-y-1 transition-all"
+    >
+      <Edit3 class="w-6 h-6" />
+    </button>
+
+    <!-- 主体内容区 -->
+    <main
+      class="flex-1 max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 w-full relative z-10"
+    >
+      <!-- ================= 左侧边栏 - 板块导航 ================= -->
+      <aside class="hidden lg:block lg:col-span-3">
+        <div class="sticky top-24">
+          <div class="mb-6">
+            <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+              板块导航
+            </h2>
+            <nav class="space-y-1">
+              <button
+                @click="switchBoard(0)"
+                :class="[
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200',
+                  activeBoardId === 0
+                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent',
+                ]"
+              >
+                <div class="flex items-center gap-3">
+                  <TrendingUp
+                    class="w-4 h-4"
+                    :class="activeBoardId === 0 ? 'text-zinc-900' : 'text-zinc-400'"
+                  />
+                  全部动态
+                </div>
+              </button>
+
+              <button
+                v-for="board in boards"
+                :key="board.id"
+                @click="switchBoard(board.id)"
+                :class="[
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200',
+                  activeBoardId === board.id
+                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent',
+                ]"
+              >
+                <div class="flex items-center gap-3">
+                  <BookOpen
+                    class="w-4 h-4"
+                    :class="activeBoardId === board.id ? 'text-zinc-900' : 'text-zinc-400'"
+                  />
+                  {{ board.name }}
+                </div>
+                <span
+                  v-if="board.postCount > 0"
+                  class="text-xs bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-md"
+                >
+                  {{ board.postCount }}
+                </span>
+              </button>
+            </nav>
+          </div>
+
+          <div class="border-t border-zinc-200 pt-6">
+            <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
+              <h3 class="text-sm font-medium text-blue-900 mb-1">正在备考 408？</h3>
+              <p class="text-xs text-blue-700 mb-3 leading-relaxed">
+                加入官方冲刺群，获取最新真题解析与打卡计划。
+              </p>
+              <button
+                class="text-xs font-medium bg-white text-blue-600 px-3 py-2 rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors w-full"
+              >
+                立即加入
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ================= 中间信息流 (Feed) ================= -->
+      <section class="col-span-1 lg:col-span-6 space-y-4">
+        <!-- 移动端/平板 分类栏 -->
+        <div class="flex lg:hidden overflow-x-auto pb-2 gap-2 hide-scrollbar">
+          <button
+            @click="switchBoard(0)"
+            :class="[
+              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-colors',
+              activeBoardId === 0
+                ? 'bg-zinc-900 text-white border-zinc-900'
+                : 'bg-white text-zinc-600 border-zinc-200',
+            ]"
+          >
+            全部动态
+          </button>
+          <button
+            v-for="board in boards"
+            :key="board.id"
+            @click="switchBoard(board.id)"
+            :class="[
+              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-colors',
+              activeBoardId === board.id
+                ? 'bg-zinc-900 text-white border-zinc-900'
+                : 'bg-white text-zinc-600 border-zinc-200',
+            ]"
+          >
+            {{ board.name }}
+          </button>
+        </div>
+
+        <!-- 帖子列表加载状态 -->
+        <div v-if="isLoadingPosts" class="space-y-4">
+          <div
+            v-for="i in 3"
+            :key="i"
+            class="bg-white border border-zinc-200 rounded-xl p-5 animate-pulse"
+          >
+            <div class="flex items-center gap-2 mb-4">
+              <div class="w-6 h-6 rounded-full bg-zinc-200"></div>
+              <div class="h-4 w-24 bg-zinc-200 rounded"></div>
+            </div>
+            <div class="h-6 w-3/4 bg-zinc-200 rounded mb-2"></div>
+            <div class="h-4 w-full bg-zinc-200 rounded mb-1"></div>
+            <div class="h-4 w-5/6 bg-zinc-200 rounded"></div>
+          </div>
+        </div>
+
+        <!-- 帖子列表 -->
+        <div v-else class="space-y-4">
+          <article
+            v-for="post in posts"
+            :key="post.id"
+            @click="goToPostDetail(post.id)"
+            class="bg-white border border-zinc-200 rounded-xl p-5 hover:border-zinc-300 transition-colors cursor-pointer group"
+          >
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <img
+                  :src="
+                    post.author?.avatarUrl ||
+                    'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+                  "
+                  :alt="post.author?.username || '匿名用户'"
+                  class="w-6 h-6 rounded-full bg-zinc-100 object-cover"
+                />
+                <span class="text-sm font-medium text-zinc-700">{{
+                  post.author?.username || '匿名用户'
+                }}</span>
+                <span class="text-zinc-300 text-xs">•</span>
+                <span class="text-xs text-zinc-500">{{ formatDate(post.createdAt) }}</span>
+              </div>
+              <span class="text-xs font-medium text-zinc-500 bg-zinc-100 px-2.5 py-1 rounded-md">
+                {{ getBoardName(post.boardId) }}
+              </span>
+            </div>
+
+            <h3
+              class="text-lg font-bold text-zinc-900 mb-2 group-hover:text-blue-600 transition-colors"
+            >
+              {{ post.title }}
+            </h3>
+            <p class="text-sm text-zinc-600 line-clamp-2 leading-relaxed mb-4">
+              {{ post.content }}
+            </p>
+
+            <div class="flex flex-wrap gap-2 mb-4">
+              <span
+                v-for="tag in post.tags"
+                :key="tag"
+                class="text-xs px-2 py-1 bg-zinc-50 border border-zinc-100 text-zinc-600 rounded-md"
+              >
+                #{{ tag }}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-6 text-zinc-500">
+              <button
+                @click.stop="handleLike(post)"
+                :class="[
+                  'flex items-center gap-1.5 text-sm transition-colors',
+                  post.isLiked ? 'text-blue-600' : 'hover:text-zinc-900',
+                ]"
+              >
+                <ThumbsUp class="w-4 h-4" :class="{ 'fill-current': post.isLiked }" />
+                <span>{{ post.likeCount }}</span>
+              </button>
+              <button
+                class="flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-colors"
+              >
+                <MessageSquare class="w-4 h-4" />
+                <span>{{ post.commentCount }}</span>
+              </button>
+              <div class="flex items-center gap-1.5 text-sm">
+                <Eye class="w-4 h-4" />
+                <span>{{ post.viewCount }}</span>
+              </div>
+              <button
+                class="ml-auto flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-colors"
+              >
+                <Share2 class="w-4 h-4" />
+              </button>
+            </div>
+          </article>
+
+          <div v-if="posts.length === 0" class="text-center py-12">
+            <p class="text-zinc-500 text-sm">该板块暂无内容，快来发布第一篇帖子吧！</p>
+          </div>
+        </div>
+
+        <button
+          v-if="posts.length > 0 && hasMore"
+          @click="loadMore"
+          :disabled="isLoadingPosts"
+          class="w-full py-3.5 text-sm font-medium text-zinc-500 hover:text-zinc-900 bg-zinc-100 rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50"
+        >
+          {{ isLoadingPosts ? '加载中...' : '加载更多' }}
+        </button>
+      </section>
+
+      <!-- ================= 右侧边栏 - 用户面板 & 积分榜 ================= -->
+      <aside class="hidden lg:block lg:col-span-3 space-y-6">
+        <!-- 🔴 1. 动态用户统计面板 -->
+        <div class="bg-white border border-zinc-200 rounded-xl p-5">
+          <div class="flex items-start gap-4 mb-4">
+            <img
+              :src="currentUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=1'"
+              alt="Avatar"
+              class="w-12 h-12 rounded-full border border-zinc-100 object-cover"
+            />
+            <div>
+              <h3 class="font-bold text-zinc-900">{{ currentUser.username || '未登录' }}</h3>
+              <p class="text-xs text-zinc-500 mt-1 truncate">
+                {{ currentUser.targetMajor || '设置目标专业' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 mb-4">
+            <div class="bg-zinc-50 rounded-lg p-3 text-center border border-zinc-100">
+              <div class="text-xs font-medium text-zinc-500">当前积分</div>
+              <div class="text-lg font-bold text-zinc-900 mt-0.5">
+                {{ checkInStats.totalPoints || currentUser.points || 0 }}
+              </div>
+            </div>
+            <div class="bg-zinc-50 rounded-lg p-3 text-center border border-zinc-100">
+              <div class="text-xs font-medium text-zinc-500">连续打卡</div>
+              <div class="text-lg font-bold text-zinc-900 mt-0.5">
+                {{ checkInStats.continuousDays || 0
+                }}<span class="text-xs ml-1 text-zinc-500">天</span>
+              </div>
+            </div>
+          </div>
+
+          <button
+            @click="openCheckInModal"
+            :disabled="checkInStats.todayChecked"
+            :class="[
+              'w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all',
+              checkInStats.todayChecked
+                ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:-translate-y-0.5 shadow-sm',
+            ]"
+          >
+            <template v-if="checkInStats.todayChecked">
+              <CheckCircle class="w-4 h-4" /> 今日已打卡
+            </template>
+            <template v-else> <Edit3 class="w-4 h-4" /> 记录今日学习 </template>
+          </button>
+        </div>
+
+        <!-- 🔴 2. 积分总榜排行榜 (代替了写死的热议) -->
+        <div class="bg-white border border-zinc-200 rounded-xl p-5 sticky top-24">
+          <h3 class="text-sm font-bold text-zinc-900 mb-5 flex items-center gap-2">
+            <Trophy class="w-4 h-4 text-yellow-500" />
+            卷王积分榜
+          </h3>
+
+          <div v-if="leaderboards.length === 0" class="text-center py-6">
+            <span class="text-xs text-zinc-400">暂无数据加载中...</span>
+          </div>
+
+          <ul v-else class="space-y-4">
+            <li
+              v-for="(user, index) in leaderboards.slice(0, 10)"
+              :key="user.id || index"
+              class="flex gap-3 items-center group cursor-pointer hover:bg-zinc-50 p-1.5 -mx-1.5 rounded-lg transition-colors"
+            >
+              <!-- 排名数字徽章 -->
+              <span
+                :class="[
+                  'w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full shrink-0',
+                  index === 0
+                    ? 'bg-yellow-100 text-yellow-600'
+                    : index === 1
+                      ? 'bg-zinc-200 text-zinc-600'
+                      : index === 2
+                        ? 'bg-orange-100 text-orange-600'
+                        : 'text-zinc-400 font-medium',
+                ]"
+              >
+                {{ index + 1 }}
+              </span>
+
+              <!-- 头像 -->
+              <img
+                :src="
+                  user.avatar_url ||
+                  user.avatarUrl ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id || user.username}`
+                "
+                class="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 object-cover shrink-0"
+              />
+
+              <!-- 用户信息 -->
+              <div class="flex-1 min-w-0">
+                <p
+                  class="text-sm font-bold text-zinc-900 truncate group-hover:text-blue-600 transition-colors"
+                >
+                  {{ user.username }}
+                </p>
+                <p class="text-[10px] text-zinc-500 truncate flex items-center gap-1">
+                  <Flame class="w-3 h-3 text-red-500" v-if="user.continuousDays > 3" />
+                  连续 {{ user.continuousDays || 0 }} 天
+                </p>
+              </div>
+
+              <!-- 分数 -->
+              <div class="text-sm font-black text-zinc-900 shrink-0">
+                {{ user.points || 0 }}
+              </div>
+            </li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <!-- 🔴 3. 打卡信息输入弹窗 (Modal) -->
+    <div
+      v-if="showCheckInModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm px-4 p-safe animate-in fade-in duration-200"
+    >
+      <div
+        class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200"
+      >
+        <div class="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
+          <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
+            <Edit3 class="w-5 h-5 text-blue-600" /> 记录今日学习
+          </h3>
+          <button
+            @click="closeCheckInModal"
+            class="text-zinc-400 hover:text-zinc-900 transition-colors"
+          >
+            <X class="w-5 h-5" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-6">
+          <!-- 学习时长滑动块 / 输入 -->
+          <div>
+            <label class="flex items-center justify-between text-sm font-medium text-zinc-700 mb-3">
+              <span>今日沉浸学习时长</span>
+              <span class="text-blue-600 font-bold text-lg"
+                >{{ checkInForm.studyHours }}
+                <span class="text-xs text-zinc-500 font-normal">小时</span></span
+              >
+            </label>
+            <input
+              type="range"
+              v-model="checkInForm.studyHours"
+              min="1"
+              max="24"
+              step="1"
+              class="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <div class="flex justify-between text-[10px] text-zinc-400 mt-2 font-medium">
+              <span>1h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span>
+            </div>
+          </div>
+
+          <!-- 心得备注 -->
+          <div>
+            <label class="block text-sm font-medium text-zinc-700 mb-2"
+              >学习心得 / 备注 (选填)</label
+            >
+            <textarea
+              v-model="checkInForm.notes"
+              rows="3"
+              class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none placeholder-zinc-400"
+              placeholder="今天复习了高数第二章，状态不错..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div
+          class="px-6 py-4 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-end gap-3"
+        >
+          <button
+            @click="closeCheckInModal"
+            class="px-5 py-2.5 text-sm font-medium text-zinc-600 bg-white border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors"
+          >
+            取消
+          </button>
+          <button
+            @click="submitCheckIn"
+            :disabled="isSubmittingCheckIn"
+            class="px-5 py-2.5 text-sm font-medium text-white bg-zinc-900 rounded-xl hover:bg-zinc-800 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
+          >
+            <span
+              v-if="isSubmittingCheckIn"
+              class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+            ></span>
+            {{ isSubmittingCheckIn ? '提交中...' : '提交打卡' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import {
+  Search,
+  Bell,
+  MessageSquare,
+  ThumbsUp,
+  Eye,
+  BookOpen,
+  TrendingUp,
+  CheckCircle,
+  Edit3,
+  Share2,
+  Trophy,
+  Flame,
+  X,
+} from 'lucide-vue-next'
+import router from '@/router'
+
+// --- 基础状态数据 ---
+const currentUser = ref({})
+const boards = ref([])
+const posts = ref([])
+const activeBoardId = ref(0)
+const isLoadingPosts = ref(false)
+
+const pageNum = ref(1)
+const pageSize = ref(10)
+const hasMore = ref(true)
+
+const searchQuery = ref('')
+const unreadCount = ref(0)
+let unreadTimer = null
+
+// --- 🔴 新增打卡与排行榜状态 ---
+const checkInStats = ref({
+  todayChecked: false,
+  continuousDays: 0,
+  points: 0,
+  totalPoints: 0,
+  totalCheckDays: 0,
+})
+
+const leaderboards = ref([])
+const showCheckInModal = ref(false)
+const isSubmittingCheckIn = ref(false)
+const checkInForm = reactive({
+  studyHours: 8, // 默认 8 小时
+  notes: '',
+})
+
+const getToken = () => localStorage.getItem('token')
+
+// --- 初始化 ---
+onMounted(async () => {
+  await fetchCurrentUser()
+  await fetchBoards()
+  await fetchPosts()
+
+  // 拉取个人打卡统计信息与全站排行榜
+  await fetchCheckInStats()
+  await fetchLeaderboards()
+
+  // 轮询未读消息
+  await fetchUnreadCount()
+  unreadTimer = setInterval(fetchUnreadCount, 30000)
+})
+
+onUnmounted(() => {
+  if (unreadTimer) {
+    clearInterval(unreadTimer)
+  }
+})
+
+// --- 数据拉取方法 ---
+
+const fetchUnreadCount = async () => {
+  try {
+    const token = getToken()
+    if (!token) return
+    const response = await fetch('/api/v1/messages/unread/count', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const result = await response.json()
+    if (result.code === 200) unreadCount.value = result.data || 0
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const fetchCurrentUser = async () => {
+  try {
+    const token = getToken()
+    if (!token) return
+    const response = await fetch('/api/users/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const result = await response.json()
+    if (result.code === 200) currentUser.value = result.data
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const fetchBoards = async () => {
+  try {
+    const response = await fetch('/api/boards')
+    const result = await response.json()
+    if (result.code === 200) {
+      const uniqueBoards = []
+      const seenNames = new Set()
+      ;(result.data || []).forEach((board) => {
+        if (!seenNames.has(board.name)) {
+          seenNames.add(board.name)
+          uniqueBoards.push(board)
+        }
+      })
+      boards.value = uniqueBoards
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const fetchPosts = async (isLoadMore = false) => {
+  if (!isLoadMore) {
+    isLoadingPosts.value = true
+    pageNum.value = 1
+    posts.value = []
+  }
+  try {
+    let url = `/api/posts/page?pageNum=${pageNum.value}&pageSize=${pageSize.value}`
+    if (activeBoardId.value !== 0)
+      url = `/api/posts/board/${activeBoardId.value}?pageNum=${pageNum.value}&pageSize=${pageSize.value}`
+
+    const response = await fetch(url)
+    const result = await response.json()
+
+    if (result.code === 200) {
+      const newPosts = result.data.list || []
+      const token = getToken()
+
+      // 并发拉取每个帖子的真实点赞状态
+      if (token && newPosts.length > 0) {
+        await Promise.all(
+          newPosts.map(async (post) => {
+            try {
+              const statusRes = await fetch(`/api/interact/post/status?postId=${post.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+              const statusJson = await statusRes.json()
+              if (statusJson.code === 200) {
+                post.isLiked = statusJson.data
+              }
+            } catch (e) {}
+          }),
+        )
+      }
+
+      if (isLoadMore) posts.value = [...posts.value, ...newPosts]
+      else posts.value = newPosts
+      hasMore.value = result.data.hasNextPage
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    isLoadingPosts.value = false
+  }
+}
+
+// 🔴 获取当前用户打卡统计
+const fetchCheckInStats = async () => {
+  try {
+    const token = getToken()
+    if (!token) return
+    const response = await fetch('/api/activity/checkin/stats', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const result = await response.json()
+    if (result.code === 200 && result.data) {
+      checkInStats.value = result.data
+    }
+  } catch (error) {
+    console.error('获取打卡统计失败:', error)
+  }
+}
+
+// 🔴 获取积分总榜
+const fetchLeaderboards = async () => {
+  try {
+    const response = await fetch('/api/activity/rank/total')
+    const result = await response.json()
+    if (result.code === 200 && result.data) {
+      leaderboards.value = result.data
+    }
+  } catch (error) {
+    console.error('获取排行榜失败:', error)
+  }
+}
+
+// --- 交互逻辑 ---
+
+const handleSearch = () => {
+  const query = searchQuery.value.trim()
+  if (query) {
+    router.push(`/search?q=${encodeURIComponent(query)}`)
+  }
+}
+
+const goToHome = () => {
+  activeBoardId.value = 0
+  fetchPosts(false)
+}
+
+const switchBoard = (id) => {
+  if (activeBoardId.value === id) return
+  activeBoardId.value = id
+  fetchPosts(false)
+}
+
+const loadMore = () => {
+  if (!hasMore.value || isLoadingPosts.value) return
+  pageNum.value += 1
+  fetchPosts(true)
+}
+
+const getBoardName = (boardId) => {
+  const board = boards.value.find((b) => b.id === boardId)
+  return board ? board.name : '未知板块'
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return `${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
+const handleLike = async (post) => {
+  const originalStatus = post.isLiked
+  post.isLiked = !post.isLiked
+  post.likeCount += post.isLiked ? 1 : -1
+  try {
+    const token = getToken()
+    const response = await fetch(`/api/interact/post/like/${post.id}`, {
+      method: 'POST',
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    })
+    const result = await response.json()
+    if (result.code !== 200) {
+      post.isLiked = originalStatus
+      post.likeCount += post.isLiked ? 1 : -1
+    }
+  } catch (error) {
+    post.isLiked = originalStatus
+    post.likeCount += post.isLiked ? 1 : -1
+  }
+}
+
+// 🔴 触发打开打卡弹窗
+const openCheckInModal = () => {
+  if (checkInStats.value.todayChecked) return
+  checkInForm.studyHours = 8
+  checkInForm.notes = ''
+  showCheckInModal.value = true
+}
+
+const closeCheckInModal = () => {
+  showCheckInModal.value = false
+}
+
+// 🔴 提交打卡记录
+const submitCheckIn = async () => {
+  if (isSubmittingCheckIn.value) return
+  isSubmittingCheckIn.value = true
+
+  try {
+    const token = getToken()
+    const response = await fetch('/api/activity/checkin', {
+      method: 'POST',
+      headers: {
+        Authorization: token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        studyHours: parseInt(checkInForm.studyHours),
+        notes: checkInForm.notes.trim(),
+      }),
+    })
+    const result = await response.json()
+
+    if (result.code === 200) {
+      // 打卡成功，使用后端返回的最新数据覆盖本地状态
+      checkInStats.value = result.data
+      closeCheckInModal()
+
+      // 悄悄刷新一次排行榜，没准你刚打卡就上榜了呢！
+      fetchLeaderboards()
+
+      // 可选: 加上一个简单的成功提示
+      // alert(`打卡成功！获得 ${result.data.points} 积分`)
+    } else {
+      alert(result.message || '打卡失败')
+    }
+  } catch (error) {
+    console.error('打卡请求异常:', error)
+  } finally {
+    isSubmittingCheckIn.value = false
+  }
+}
+
+const goToPostDetail = (postId) => router.push(`/post/${postId}`)
+const goToUserCenter = () => router.push('/user_center')
+const goToCreatePost = () => router.push('/create_post')
+const goToMessageCenter = () => router.push('/messages')
+</script>
+
+<style scoped>
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 适配刘海屏 */
+.p-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+</style>

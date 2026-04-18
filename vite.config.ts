@@ -15,7 +15,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8080', // 你的后端实际地址
+        target: 'http://localhost:8081', // 你的后端实际地址
         changeOrigin: true,
       },
     },

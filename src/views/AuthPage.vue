@@ -435,6 +435,7 @@
 </template>
 
 <script setup>
+import router from '@/router'
 import { ref, reactive } from 'vue'
 
 // --- 状态管理 ---
@@ -555,6 +556,8 @@ const handleLogin = async () => {
       // 存储 Token 和 用户信息 (ResultLoginVO.data)
       localStorage.setItem('token', result.data.token)
       // TODO: 跳转主页 router.push('/')
+      //router.push('/user_center')
+      router.push('/community')
       console.log('登录成功！')
     } else {
       // 业务失败：显示后端返回的错误消息
