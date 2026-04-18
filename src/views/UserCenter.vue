@@ -1,6 +1,8 @@
 <template>
-  <div class="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 py-8">
-    <div class="max-w-5xl mx-auto px-4">
+  <div
+    class="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 py-8 relative overflow-hidden"
+  >
+    <div class="max-w-5xl mx-auto px-4 relative z-10">
       <!-- 返回与标题 -->
       <div class="mb-6 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -20,9 +22,10 @@
           <div
             class="bg-white border border-zinc-200 rounded-2xl p-6 text-center shadow-sm relative overflow-hidden"
           >
-            <!-- 顶部装饰色块 -->
+            <!-- 顶部装饰色块（附带全局设定的动态背景流转动画） -->
             <div
               class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-zinc-800 to-zinc-900"
+              style="background-size: 200% 200%; animation: gradientShift 8s ease infinite"
             ></div>
 
             <div class="relative mt-8 mb-4">
@@ -209,6 +212,29 @@
         </div>
       </div>
     </div>
+
+    <!-- 成功提示 Toast (无业务逻辑，纯UI渲染交互) -->
+    <transition name="toast">
+      <div
+        v-if="showSuccessToast"
+        class="fixed bottom-8 right-8 z-50 flex items-center gap-3 px-6 py-4 bg-white border border-zinc-200 shadow-xl rounded-xl"
+      >
+        <div class="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 13l4 4L19 7"
+            ></path>
+          </svg>
+        </div>
+        <div>
+          <h4 class="text-sm font-bold text-zinc-900">资料更新成功</h4>
+          <p class="text-xs text-zinc-500">您的个人信息已实时同步到社区</p>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -232,6 +258,9 @@ import router from '@/router'
 const user = ref({})
 const isEditing = ref(false)
 const isSaving = ref(false)
+
+// 用于控制动画展示的 UI 状态
+const showSuccessToast = ref(false)
 
 // 对应 UserUpdateDTO
 const editForm = reactive({
@@ -308,7 +337,12 @@ const handleSave = async () => {
       user.value = result.data
       isEditing.value = false
       console.log('资料更新成功！')
-      // TODO: 添加页面 Toast 成功提示
+
+      // 触发 UI 提示气泡，3秒后自动消失
+      showSuccessToast.value = true
+      setTimeout(() => {
+        showSuccessToast.value = false
+      }, 3000)
     } else {
       console.error('更新失败:', result.message)
       // TODO: 添加页面 Toast 错误提示
@@ -326,3 +360,16 @@ const goBack = () => {
   console.log('返回上一页')
 }
 </script>
+
+<style scoped>
+/* Toast 弹出的位移动画 */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(30px) translateY(10px);
+}
+</style>

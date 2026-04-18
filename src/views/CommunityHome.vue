@@ -44,7 +44,7 @@
             <Bell class="w-5 h-5" />
             <span
               v-if="unreadCount > 0"
-              class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white animate-bounce"
+              class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white animate-pulse"
             >
               {{ unreadCount > 99 ? '99+' : unreadCount }}
             </span>
@@ -59,7 +59,7 @@
                 currentUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
               "
               alt="Avatar"
-              class="w-8 h-8 rounded-full border border-zinc-200 bg-zinc-100 object-cover"
+              class="w-8 h-8 rounded-full border border-zinc-200 bg-zinc-100 object-cover transition-opacity duration-700"
             />
           </button>
 
@@ -96,10 +96,10 @@
               <button
                 @click="switchBoard(0)"
                 :class="[
-                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95',
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border',
                   activeBoardId === 0
-                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium translate-x-1'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent hover:translate-x-1',
+                    ? 'bg-white border-zinc-200 border-l-4 border-l-zinc-900 shadow-sm text-zinc-900 font-medium translate-x-1'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1',
                 ]"
               >
                 <div class="flex items-center gap-3">
@@ -116,10 +116,10 @@
                 :key="board.id"
                 @click="switchBoard(board.id)"
                 :class="[
-                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95',
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border',
                   activeBoardId === board.id
-                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium translate-x-1'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent hover:translate-x-1',
+                    ? 'bg-white border-zinc-200 border-l-4 border-l-zinc-900 shadow-sm text-zinc-900 font-medium translate-x-1'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1',
                 ]"
               >
                 <div class="flex items-center gap-3">
@@ -210,7 +210,7 @@
                 v-for="post in posts"
                 :key="post.id"
                 @click="goToPostDetail(post.id)"
-                class="bg-white border border-zinc-200 rounded-2xl p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-zinc-300 cursor-pointer group"
+                class="bg-white border border-zinc-200 rounded-2xl p-5 cursor-pointer group hover-lift"
               >
                 <div class="flex items-center justify-between mb-3">
                   <div class="flex items-center gap-2">
@@ -221,7 +221,7 @@
                       "
                       :alt="post.author?.username || '匿名用户'"
                       @click.stop="goToUserProfile(post.author?.userId)"
-                      class="w-8 h-8 rounded-full bg-zinc-100 object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                      class="w-8 h-8 rounded-full bg-zinc-100 object-cover cursor-pointer hover:opacity-80 transition-opacity duration-700"
                     />
                     <span
                       @click.stop="goToUserProfile(post.author?.userId)"
@@ -321,7 +321,7 @@
             <img
               :src="currentUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=1'"
               alt="Avatar"
-              class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover transition-transform hover:rotate-6"
+              class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover transition-transform hover:rotate-6 duration-700"
             />
             <div class="flex-1 min-w-0">
               <h3 class="font-bold text-zinc-900 truncate">
@@ -338,7 +338,10 @@
               class="bg-zinc-50 rounded-xl p-3 text-center border border-zinc-100 transition-colors hover:bg-zinc-100"
             >
               <div class="text-xs font-medium text-zinc-500">当前积分</div>
-              <div class="text-xl font-bold text-zinc-900 mt-1">
+              <div
+                :key="checkInStats.totalPoints || currentUser.points"
+                class="text-xl font-bold text-zinc-900 mt-1 animate-number-change"
+              >
                 {{ checkInStats.totalPoints || currentUser.points || 0 }}
               </div>
             </div>
@@ -346,7 +349,10 @@
               class="bg-zinc-50 rounded-xl p-3 text-center border border-zinc-100 transition-colors hover:bg-zinc-100"
             >
               <div class="text-xs font-medium text-zinc-500">连续打卡</div>
-              <div class="text-xl font-bold text-zinc-900 mt-1">
+              <div
+                :key="checkInStats.continuousDays"
+                class="text-xl font-bold text-zinc-900 mt-1 animate-number-change"
+              >
                 {{ checkInStats.continuousDays || 0
                 }}<span class="text-xs ml-1 text-zinc-500 font-normal">天</span>
               </div>
@@ -407,7 +413,7 @@
                   user.avatarUrl ||
                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id || user.username}`
                 "
-                class="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 object-cover shrink-0 transition-transform group-hover:rotate-6"
+                class="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 object-cover shrink-0 transition-transform group-hover:rotate-6 duration-700"
               />
               <div class="flex-1 min-w-0">
                 <p

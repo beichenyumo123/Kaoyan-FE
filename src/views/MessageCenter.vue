@@ -66,10 +66,10 @@
                   "
                   class="w-10 h-10 rounded-full bg-zinc-200 object-cover"
                 />
-                <!-- 小红点 -->
+                <!-- 小红点，加入跳动的 pulse 动画 -->
                 <span
                   v-if="contact.unreadCount > 0"
-                  class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white"
+                  class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white animate-pulse"
                 >
                   {{ contact.unreadCount > 99 ? '99+' : contact.unreadCount }}
                 </span>
@@ -178,11 +178,14 @@
               </span>
             </div>
 
-            <!-- 消息气泡列表 -->
+            <!-- 消息气泡列表：增加平滑淡入动画 -->
             <div
               v-for="(msg, index) in messages"
               :key="msg.id || index"
-              :class="['flex w-full', isMyMessage(msg) ? 'justify-end' : 'justify-start']"
+              :class="[
+                'flex w-full animate-fade-in-up',
+                isMyMessage(msg) ? 'justify-end' : 'justify-start',
+              ]"
             >
               <div
                 :class="[
@@ -238,8 +241,9 @@
 
           <!-- 底部输入区 -->
           <div class="shrink-0 p-4 bg-white border-t border-zinc-100">
+            <!-- 增加聚焦时 transform 平移反馈交互 -->
             <div
-              class="bg-zinc-50 border border-zinc-200 rounded-xl flex items-end focus-within:ring-2 focus-within:ring-zinc-900/10 focus-within:bg-white focus-within:border-zinc-400 transition-all px-3 py-2"
+              class="bg-zinc-50 border border-zinc-200 rounded-xl flex items-end focus-within:ring-2 focus-within:ring-zinc-900/10 focus-within:bg-white focus-within:border-zinc-400 focus-within:transform focus-within:-translate-y-[2px] transition-all duration-300 px-3 py-2"
             >
               <textarea
                 v-model="inputMessage"

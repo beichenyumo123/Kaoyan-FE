@@ -81,23 +81,29 @@
             {{ post.title }}
           </h1>
 
-          <div class="text-zinc-700 leading-relaxed text-base whitespace-pre-wrap mb-8">
+          <div
+            class="post-content text-zinc-700 leading-relaxed text-base whitespace-pre-wrap mb-8"
+          >
             {{ post.content }}
           </div>
 
           <div class="flex items-center justify-between pt-6 border-t border-zinc-100">
+            <!-- 带有纯CSS爆炸粒子动画的点赞按钮 -->
             <button
               @click="handleLike"
               :class="[
-                'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform active:scale-90 border',
+                'particle-burst flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform active:scale-90 border',
                 post.isLiked
-                  ? 'bg-blue-50 text-blue-600 border-blue-200 shadow-sm hover:bg-blue-100'
+                  ? 'active bg-blue-50 text-blue-600 border-blue-200 shadow-sm hover:bg-blue-100'
                   : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 hover:shadow-sm',
               ]"
             >
               <ThumbsUp
                 class="w-4 h-4 transition-transform"
-                :class="{ 'fill-current': post.isLiked, '-rotate-12 scale-110': post.isLiked }"
+                :class="{
+                  'fill-current animate-heartbeat': post.isLiked,
+                  '-rotate-12 scale-110': post.isLiked,
+                }"
               />
               <span>{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount }}</span>
             </button>
@@ -174,7 +180,9 @@
                     formatTimeAgo(root.createdAt)
                   }}</span>
                 </div>
-                <p class="text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap">
+                <p
+                  class="comment-content text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap"
+                >
                   {{ root.content }}
                 </p>
 
@@ -230,10 +238,10 @@
                   </div>
                 </div>
 
-                <!-- 子评论区块 (楼中楼) -->
+                <!-- 子评论区块 (楼中楼) - 加入左侧引导线强化层级 -->
                 <div
                   v-if="root.flatChildren && root.flatChildren.length > 0"
-                  class="mt-4 bg-zinc-50 rounded-xl p-4 space-y-4 border border-zinc-100"
+                  class="mt-4 bg-zinc-50 rounded-xl p-4 space-y-4 border border-zinc-100 border-l-2 border-l-zinc-200 pl-4"
                 >
                   <transition-group name="list" tag="div" class="space-y-4">
                     <div
@@ -274,7 +282,9 @@
                           }}</span>
                         </div>
 
-                        <p class="text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap">
+                        <p
+                          class="comment-content text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap"
+                        >
                           {{ child.content }}
                         </p>
 
@@ -694,5 +704,56 @@ const goToMessage = () => {
 }
 .list-leave-active {
   position: absolute;
+}
+
+/* ==================================================
+ * 纯 CSS 实现的粒子爆炸特效
+ * ================================================== */
+.particle-burst {
+  position: relative;
+}
+.particle-burst.active::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  box-shadow:
+    -18px -18px 0 0 #3b82f6,
+    18px -18px 0 0 #3b82f6,
+    18px 18px 0 0 #3b82f6,
+    -18px 18px 0 0 #3b82f6,
+    0 -24px 0 0 #60a5fa,
+    0 24px 0 0 #60a5fa,
+    24px 0 0 0 #60a5fa,
+    -24px 0 0 0 #60a5fa;
+  transform: translate(-50%, -50%) scale(0);
+  animation: burst 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes burst {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* ==================================================
+ * 处理全局/正文图片渲染悬浮放大效果
+ * ================================================== */
+:deep(.post-content img),
+:deep(.comment-content img) {
+  @apply cursor-zoom-in rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300;
 }
 </style>

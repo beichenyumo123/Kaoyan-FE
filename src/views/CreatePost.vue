@@ -20,7 +20,7 @@
             :disabled="isPublishing || !isFormValid"
             class="bg-zinc-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-95 flex items-center gap-2"
           >
-            <Send class="w-4 h-4" />
+            <Send class="w-4 h-4" :class="{ 'animate-spin': isPublishing }" />
             {{ isPublishing ? '发布中...' : '发布' }}
           </button>
         </div>
@@ -65,12 +65,14 @@
       <!-- 标签输入区 -->
       <div class="border-t border-zinc-100 pt-6 mt-auto">
         <label class="block text-sm font-medium text-zinc-500 mb-3">添加标签 (按回车添加)</label>
-        <div class="flex flex-wrap items-center gap-2">
+
+        <!-- 使用 transition-group 以支持标签的淡入和删除退场动画 -->
+        <transition-group name="tag" tag="div" class="flex flex-wrap items-center gap-2 relative">
           <!-- 已添加的标签 -->
           <span
             v-for="(tag, index) in postForm.tags"
-            :key="index"
-            class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded-lg text-sm group"
+            :key="tag"
+            class="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 text-zinc-700 rounded-lg text-sm group animate-fade-in-up transition-all duration-300"
           >
             # {{ tag }}
             <button
@@ -83,13 +85,14 @@
 
           <!-- 输入框 -->
           <input
+            key="input-box"
             v-model="tagInput"
             @keydown.enter.prevent="addTag"
             type="text"
             placeholder="输入标签..."
             class="px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all w-32"
           />
-        </div>
+        </transition-group>
       </div>
     </main>
   </div>
@@ -221,5 +224,19 @@ input:focus,
 textarea:focus {
   outline: none;
   box-shadow: none;
+}
+
+/* 标签平滑过渡动画 */
+.tag-enter-active,
+.tag-leave-active {
+  transition: all 0.3s ease;
+}
+.tag-enter-from,
+.tag-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.9);
+}
+.tag-leave-active {
+  position: absolute;
 }
 </style>
