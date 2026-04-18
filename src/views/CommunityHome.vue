@@ -3,30 +3,34 @@
     class="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 flex flex-col relative"
   >
     <!-- 顶部导航栏 (Header) -->
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200">
+    <header
+      class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200 transition-all duration-300"
+    >
       <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <!-- Logo 区域 -->
-        <div class="flex items-center gap-2 cursor-pointer" @click="goToHome">
+        <div class="flex items-center gap-2 cursor-pointer group" @click="goToHome">
           <div
-            class="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center transform transition hover:scale-105"
+            class="w-8 h-8 bg-zinc-900 rounded-md flex items-center justify-center transform transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-sm"
           >
             <span class="text-white font-bold text-lg">研</span>
           </div>
-          <span class="text-xl font-bold tracking-tight">考研交流社区</span>
+          <span class="text-xl font-bold tracking-tight transition-colors group-hover:text-zinc-600"
+            >考研交流社区</span
+          >
         </div>
 
         <!-- 搜索框 -->
         <div class="hidden md:flex flex-1 max-w-md mx-8 relative group">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search
-              class="h-4 w-4 text-zinc-400 group-focus-within:text-zinc-600 transition-colors"
+              class="h-4 w-4 text-zinc-400 group-focus-within:text-zinc-900 transition-colors duration-300"
             />
           </div>
           <input
             v-model="searchQuery"
             @keydown.enter="handleSearch"
             type="text"
-            class="block w-full pl-10 pr-3 py-2 border border-zinc-200 rounded-lg leading-5 bg-zinc-100 placeholder-zinc-500 focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all sm:text-sm"
+            class="block w-full pl-10 pr-3 py-2 border border-zinc-200 rounded-xl leading-5 bg-zinc-100 placeholder-zinc-500 focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all duration-300 sm:text-sm hover:bg-zinc-200/50"
             placeholder="搜索帖子、资料或用户... (按回车搜索)"
           />
         </div>
@@ -35,12 +39,12 @@
         <div class="flex items-center gap-5">
           <button
             @click="goToMessageCenter"
-            class="text-zinc-500 hover:text-zinc-900 transition-colors relative"
+            class="text-zinc-500 hover:text-zinc-900 transition-all duration-300 relative hover:-translate-y-0.5"
           >
             <Bell class="w-5 h-5" />
             <span
               v-if="unreadCount > 0"
-              class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white"
+              class="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-white animate-bounce"
             >
               {{ unreadCount > 99 ? '99+' : unreadCount }}
             </span>
@@ -48,7 +52,7 @@
 
           <button
             @click="goToUserCenter"
-            class="flex items-center gap-2 transform transition hover:scale-105"
+            class="flex items-center gap-2 transform transition-all duration-300 hover:scale-110 hover:shadow-md rounded-full"
           >
             <img
               :src="
@@ -61,7 +65,7 @@
 
           <button
             @click="goToCreatePost"
-            class="hidden md:block bg-zinc-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-zinc-800 hover:-translate-y-0.5 hover:shadow-md transition-all"
+            class="hidden md:block bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/20 active:scale-95 transition-all duration-300"
           >
             发布帖子
           </button>
@@ -82,25 +86,25 @@
       class="flex-1 max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-8 w-full relative z-10"
     >
       <!-- ================= 左侧边栏 - 板块导航 ================= -->
-      <aside class="hidden lg:block lg:col-span-3">
+      <aside class="hidden lg:block lg:col-span-3 animate-fade-in-up">
         <div class="sticky top-24">
           <div class="mb-6">
-            <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+            <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 pl-2">
               板块导航
             </h2>
             <nav class="space-y-1">
               <button
                 @click="switchBoard(0)"
                 :class="[
-                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200',
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95',
                   activeBoardId === 0
-                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent',
+                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium translate-x-1'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent hover:translate-x-1',
                 ]"
               >
                 <div class="flex items-center gap-3">
                   <TrendingUp
-                    class="w-4 h-4"
+                    class="w-4 h-4 transition-colors"
                     :class="activeBoardId === 0 ? 'text-zinc-900' : 'text-zinc-400'"
                   />
                   全部动态
@@ -112,25 +116,24 @@
                 :key="board.id"
                 @click="switchBoard(board.id)"
                 :class="[
-                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-lg transition-all duration-200',
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95',
                   activeBoardId === board.id
-                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium'
-                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent',
+                    ? 'bg-white border border-zinc-200 shadow-sm text-zinc-900 font-medium translate-x-1'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-transparent hover:translate-x-1',
                 ]"
               >
                 <div class="flex items-center gap-3">
                   <BookOpen
-                    class="w-4 h-4"
+                    class="w-4 h-4 transition-colors"
                     :class="activeBoardId === board.id ? 'text-zinc-900' : 'text-zinc-400'"
                   />
                   {{ board.name }}
                 </div>
                 <span
                   v-if="board.postCount > 0"
-                  class="text-xs bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-md"
+                  class="text-xs bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-md transition-colors"
+                  >{{ board.postCount }}</span
                 >
-                  {{ board.postCount }}
-                </span>
               </button>
             </nav>
           </div>
@@ -152,16 +155,16 @@
       </aside>
 
       <!-- ================= 中间信息流 (Feed) ================= -->
-      <section class="col-span-1 lg:col-span-6 space-y-4">
+      <section class="col-span-1 lg:col-span-6 space-y-4 animate-fade-in-up animation-delay-100">
         <!-- 移动端/平板 分类栏 -->
         <div class="flex lg:hidden overflow-x-auto pb-2 gap-2 hide-scrollbar">
           <button
             @click="switchBoard(0)"
             :class="[
-              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-colors',
+              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-all duration-300 active:scale-95',
               activeBoardId === 0
-                ? 'bg-zinc-900 text-white border-zinc-900'
-                : 'bg-white text-zinc-600 border-zinc-200',
+                ? 'bg-zinc-900 text-white border-zinc-900 shadow-md'
+                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
             ]"
           >
             全部动态
@@ -171,155 +174,176 @@
             :key="board.id"
             @click="switchBoard(board.id)"
             :class="[
-              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-colors',
+              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-all duration-300 active:scale-95',
               activeBoardId === board.id
-                ? 'bg-zinc-900 text-white border-zinc-900'
-                : 'bg-white text-zinc-600 border-zinc-200',
+                ? 'bg-zinc-900 text-white border-zinc-900 shadow-md'
+                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
             ]"
           >
             {{ board.name }}
           </button>
         </div>
 
-        <!-- 帖子列表加载状态 -->
-        <div v-if="isLoadingPosts" class="space-y-4">
-          <div
-            v-for="i in 3"
-            :key="i"
-            class="bg-white border border-zinc-200 rounded-xl p-5 animate-pulse"
-          >
-            <div class="flex items-center gap-2 mb-4">
-              <div class="w-6 h-6 rounded-full bg-zinc-200"></div>
-              <div class="h-4 w-24 bg-zinc-200 rounded"></div>
-            </div>
-            <div class="h-6 w-3/4 bg-zinc-200 rounded mb-2"></div>
-            <div class="h-4 w-full bg-zinc-200 rounded mb-1"></div>
-            <div class="h-4 w-5/6 bg-zinc-200 rounded"></div>
-          </div>
-        </div>
-
-        <!-- 帖子列表 -->
-        <div v-else class="space-y-4">
-          <article
-            v-for="post in posts"
-            :key="post.id"
-            @click="goToPostDetail(post.id)"
-            class="bg-white border border-zinc-200 rounded-xl p-5 hover:border-zinc-300 transition-colors cursor-pointer group"
-          >
-            <div class="flex items-center justify-between mb-3">
-              <div class="flex items-center gap-2">
-                <img
-                  :src="
-                    post.author?.avatarUrl ||
-                    'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
-                  "
-                  :alt="post.author?.username || '匿名用户'"
-                  class="w-6 h-6 rounded-full bg-zinc-100 object-cover"
-                />
-                <span class="text-sm font-medium text-zinc-700">{{
-                  post.author?.username || '匿名用户'
-                }}</span>
-                <span class="text-zinc-300 text-xs">•</span>
-                <span class="text-xs text-zinc-500">{{ formatDate(post.createdAt) }}</span>
-              </div>
-              <span class="text-xs font-medium text-zinc-500 bg-zinc-100 px-2.5 py-1 rounded-md">
-                {{ getBoardName(post.boardId) }}
-              </span>
-            </div>
-
-            <h3
-              class="text-lg font-bold text-zinc-900 mb-2 group-hover:text-blue-600 transition-colors"
+        <!-- 🔴 使用过度动画包裹 加载骨架屏 与 帖子列表 -->
+        <transition name="feed" mode="out-in">
+          <!-- 帖子列表加载状态 -->
+          <div v-if="isLoadingPosts" key="skeleton" class="space-y-4 w-full">
+            <div
+              v-for="i in 3"
+              :key="i"
+              class="bg-white border border-zinc-200 rounded-2xl p-5 animate-pulse"
             >
-              {{ post.title }}
-            </h3>
-            <p class="text-sm text-zinc-600 line-clamp-2 leading-relaxed mb-4">
-              {{ post.content }}
-            </p>
-
-            <div class="flex flex-wrap gap-2 mb-4">
-              <span
-                v-for="tag in post.tags"
-                :key="tag"
-                class="text-xs px-2 py-1 bg-zinc-50 border border-zinc-100 text-zinc-600 rounded-md"
-              >
-                #{{ tag }}
-              </span>
-            </div>
-
-            <div class="flex items-center gap-6 text-zinc-500">
-              <button
-                @click.stop="handleLike(post)"
-                :class="[
-                  'flex items-center gap-1.5 text-sm transition-colors',
-                  post.isLiked ? 'text-blue-600' : 'hover:text-zinc-900',
-                ]"
-              >
-                <ThumbsUp class="w-4 h-4" :class="{ 'fill-current': post.isLiked }" />
-                <span>{{ post.likeCount }}</span>
-              </button>
-              <button
-                class="flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-colors"
-              >
-                <MessageSquare class="w-4 h-4" />
-                <span>{{ post.commentCount }}</span>
-              </button>
-              <div class="flex items-center gap-1.5 text-sm">
-                <Eye class="w-4 h-4" />
-                <span>{{ post.viewCount }}</span>
+              <div class="flex items-center gap-2 mb-4">
+                <div class="w-8 h-8 rounded-full bg-zinc-200"></div>
+                <div class="h-4 w-24 bg-zinc-200 rounded"></div>
               </div>
-              <button
-                class="ml-auto flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-colors"
-              >
-                <Share2 class="w-4 h-4" />
-              </button>
+              <div class="h-6 w-3/4 bg-zinc-200 rounded mb-3"></div>
+              <div class="h-4 w-full bg-zinc-200 rounded mb-2"></div>
+              <div class="h-4 w-5/6 bg-zinc-200 rounded"></div>
             </div>
-          </article>
-
-          <div v-if="posts.length === 0" class="text-center py-12">
-            <p class="text-zinc-500 text-sm">该板块暂无内容，快来发布第一篇帖子吧！</p>
           </div>
-        </div>
+
+          <!-- 帖子列表 (使用 TransitionGroup 实现交错动画) -->
+          <div v-else key="post-list" class="w-full">
+            <transition-group name="list" tag="div" class="space-y-4 relative">
+              <article
+                v-for="post in posts"
+                :key="post.id"
+                @click="goToPostDetail(post.id)"
+                class="bg-white border border-zinc-200 rounded-2xl p-5 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-zinc-300 cursor-pointer group"
+              >
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <img
+                      :src="
+                        post.author?.avatarUrl ||
+                        'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+                      "
+                      :alt="post.author?.username || '匿名用户'"
+                      class="w-8 h-8 rounded-full bg-zinc-100 object-cover"
+                    />
+                    <span class="text-sm font-medium text-zinc-700">{{
+                      post.author?.username || '匿名用户'
+                    }}</span>
+                    <span class="text-zinc-300 text-xs">•</span>
+                    <span class="text-xs text-zinc-500">{{ formatDate(post.createdAt) }}</span>
+                  </div>
+                  <span
+                    class="text-xs font-medium text-zinc-500 bg-zinc-100 px-2.5 py-1 rounded-lg transition-colors group-hover:bg-zinc-200"
+                    >{{ getBoardName(post.boardId) }}</span
+                  >
+                </div>
+
+                <h3
+                  class="text-lg font-bold text-zinc-900 mb-2 group-hover:text-blue-600 transition-colors"
+                >
+                  {{ post.title }}
+                </h3>
+                <p class="text-sm text-zinc-600 line-clamp-2 leading-relaxed mb-4">
+                  {{ post.content }}
+                </p>
+
+                <div class="flex flex-wrap gap-2 mb-4">
+                  <span
+                    v-for="tag in post.tags"
+                    :key="tag"
+                    class="text-xs px-2.5 py-1 bg-zinc-50 border border-zinc-100 text-zinc-600 rounded-lg group-hover:border-zinc-200 transition-colors"
+                  >
+                    #{{ tag }}
+                  </span>
+                </div>
+
+                <div class="flex items-center gap-6 text-zinc-500 mt-2">
+                  <button
+                    @click.stop="handleLike(post)"
+                    :class="[
+                      'flex items-center gap-1.5 text-sm transition-all duration-300 hover:scale-110 active:scale-90',
+                      post.isLiked ? 'text-blue-600' : 'hover:text-zinc-900',
+                    ]"
+                  >
+                    <ThumbsUp
+                      class="w-4 h-4 transition-transform"
+                      :class="{ 'fill-current': post.isLiked, '-rotate-12': post.isLiked }"
+                    />
+                    <span>{{ post.likeCount }}</span>
+                  </button>
+                  <button
+                    class="flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-all duration-300 hover:scale-110"
+                  >
+                    <MessageSquare class="w-4 h-4" />
+                    <span>{{ post.commentCount }}</span>
+                  </button>
+                  <div class="flex items-center gap-1.5 text-sm">
+                    <Eye class="w-4 h-4" />
+                    <span>{{ post.viewCount }}</span>
+                  </div>
+                  <button
+                    class="ml-auto flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-all duration-300 hover:scale-110 hover:rotate-12"
+                  >
+                    <Share2 class="w-4 h-4" />
+                  </button>
+                </div>
+              </article>
+
+              <div
+                v-if="posts.length === 0"
+                class="text-center py-16 bg-white border border-zinc-200 rounded-2xl"
+                key="empty"
+              >
+                <p class="text-zinc-500 text-sm">该板块暂无内容，快来发布第一篇帖子吧！</p>
+              </div>
+            </transition-group>
+          </div>
+        </transition>
 
         <button
           v-if="posts.length > 0 && hasMore"
           @click="loadMore"
           :disabled="isLoadingPosts"
-          class="w-full py-3.5 text-sm font-medium text-zinc-500 hover:text-zinc-900 bg-zinc-100 rounded-xl hover:bg-zinc-200 transition-colors disabled:opacity-50"
+          class="w-full py-4 text-sm font-medium text-zinc-600 bg-white border border-zinc-200 rounded-2xl hover:bg-zinc-50 transition-all duration-300 disabled:opacity-50 hover:shadow-md active:scale-[0.98]"
         >
-          {{ isLoadingPosts ? '加载中...' : '加载更多' }}
+          {{ isLoadingPosts ? '正在加载新内容...' : '加载更多帖子' }}
         </button>
       </section>
 
-      <!-- ================= 右侧边栏 - 用户面板 & 积分榜 ================= -->
-      <aside class="hidden lg:block lg:col-span-3 space-y-6">
-        <!-- 🔴 1. 动态用户统计面板 -->
-        <div class="bg-white border border-zinc-200 rounded-xl p-5">
-          <div class="flex items-start gap-4 mb-4">
+      <!-- ================= 右侧边栏 ================= -->
+      <aside class="hidden lg:block lg:col-span-3 space-y-6 animate-fade-in-up animation-delay-200">
+        <!-- 动态用户统计面板 -->
+        <div
+          class="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-300"
+        >
+          <div class="flex items-start gap-4 mb-5">
             <img
               :src="currentUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=1'"
               alt="Avatar"
-              class="w-12 h-12 rounded-full border border-zinc-100 object-cover"
+              class="w-12 h-12 rounded-full border-2 border-white shadow-sm object-cover transition-transform hover:rotate-6"
             />
-            <div>
-              <h3 class="font-bold text-zinc-900">{{ currentUser.username || '未登录' }}</h3>
+            <div class="flex-1 min-w-0">
+              <h3 class="font-bold text-zinc-900 truncate">
+                {{ currentUser.username || '未登录' }}
+              </h3>
               <p class="text-xs text-zinc-500 mt-1 truncate">
                 {{ currentUser.targetMajor || '设置目标专业' }}
               </p>
             </div>
           </div>
 
-          <div class="grid grid-cols-2 gap-2 mb-4">
-            <div class="bg-zinc-50 rounded-lg p-3 text-center border border-zinc-100">
+          <div class="grid grid-cols-2 gap-3 mb-5">
+            <div
+              class="bg-zinc-50 rounded-xl p-3 text-center border border-zinc-100 transition-colors hover:bg-zinc-100"
+            >
               <div class="text-xs font-medium text-zinc-500">当前积分</div>
-              <div class="text-lg font-bold text-zinc-900 mt-0.5">
+              <div class="text-xl font-bold text-zinc-900 mt-1">
                 {{ checkInStats.totalPoints || currentUser.points || 0 }}
               </div>
             </div>
-            <div class="bg-zinc-50 rounded-lg p-3 text-center border border-zinc-100">
+            <div
+              class="bg-zinc-50 rounded-xl p-3 text-center border border-zinc-100 transition-colors hover:bg-zinc-100"
+            >
               <div class="text-xs font-medium text-zinc-500">连续打卡</div>
-              <div class="text-lg font-bold text-zinc-900 mt-0.5">
+              <div class="text-xl font-bold text-zinc-900 mt-1">
                 {{ checkInStats.continuousDays || 0
-                }}<span class="text-xs ml-1 text-zinc-500">天</span>
+                }}<span class="text-xs ml-1 text-zinc-500 font-normal">天</span>
               </div>
             </div>
           </div>
@@ -328,10 +352,10 @@
             @click="openCheckInModal"
             :disabled="checkInStats.todayChecked"
             :class="[
-              'w-full py-2.5 rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-all',
+              'w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-all duration-300 transform',
               checkInStats.todayChecked
                 ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:-translate-y-0.5 shadow-sm',
+                : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:-translate-y-1 hover:shadow-lg hover:shadow-zinc-900/20 active:scale-95',
             ]"
           >
             <template v-if="checkInStats.todayChecked">
@@ -341,50 +365,44 @@
           </button>
         </div>
 
-        <!-- 🔴 2. 积分总榜排行榜 (代替了写死的热议) -->
-        <div class="bg-white border border-zinc-200 rounded-xl p-5 sticky top-24">
+        <!-- 排行榜 -->
+        <div
+          class="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow duration-300 sticky top-24"
+        >
           <h3 class="text-sm font-bold text-zinc-900 mb-5 flex items-center gap-2">
-            <Trophy class="w-4 h-4 text-yellow-500" />
-            卷王积分榜
+            <Trophy class="w-4 h-4 text-yellow-500" />卷王积分榜
           </h3>
-
           <div v-if="leaderboards.length === 0" class="text-center py-6">
             <span class="text-xs text-zinc-400">暂无数据加载中...</span>
           </div>
-
-          <ul v-else class="space-y-4">
+          <transition-group v-else name="list" tag="ul" class="space-y-3 relative">
             <li
               v-for="(user, index) in leaderboards.slice(0, 10)"
               :key="user.id || index"
-              class="flex gap-3 items-center group cursor-pointer hover:bg-zinc-50 p-1.5 -mx-1.5 rounded-lg transition-colors"
+              class="flex gap-3 items-center group cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-all duration-200"
             >
-              <!-- 排名数字徽章 -->
               <span
                 :class="[
-                  'w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full shrink-0',
+                  'w-6 h-6 flex items-center justify-center text-xs font-bold rounded-full shrink-0 transition-transform group-hover:scale-110',
                   index === 0
-                    ? 'bg-yellow-100 text-yellow-600'
+                    ? 'bg-yellow-100 text-yellow-600 shadow-sm'
                     : index === 1
-                      ? 'bg-zinc-200 text-zinc-600'
+                      ? 'bg-zinc-200 text-zinc-600 shadow-sm'
                       : index === 2
-                        ? 'bg-orange-100 text-orange-600'
+                        ? 'bg-orange-100 text-orange-600 shadow-sm'
                         : 'text-zinc-400 font-medium',
                 ]"
               >
                 {{ index + 1 }}
               </span>
-
-              <!-- 头像 -->
               <img
                 :src="
                   user.avatar_url ||
                   user.avatarUrl ||
                   `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id || user.username}`
                 "
-                class="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 object-cover shrink-0"
+                class="w-8 h-8 rounded-full bg-zinc-100 border border-zinc-200 object-cover shrink-0 transition-transform group-hover:rotate-6"
               />
-
-              <!-- 用户信息 -->
               <div class="flex-1 min-w-0">
                 <p
                   class="text-sm font-bold text-zinc-900 truncate group-hover:text-blue-600 transition-colors"
@@ -396,97 +414,104 @@
                   连续 {{ user.continuousDays || 0 }} 天
                 </p>
               </div>
-
-              <!-- 分数 -->
-              <div class="text-sm font-black text-zinc-900 shrink-0">
-                {{ user.points || 0 }}
-              </div>
+              <div class="text-sm font-black text-zinc-900 shrink-0">{{ user.points || 0 }}</div>
             </li>
-          </ul>
+          </transition-group>
         </div>
       </aside>
     </main>
 
-    <!-- 🔴 3. 打卡信息输入弹窗 (Modal) -->
-    <div
-      v-if="showCheckInModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-zinc-900/40 backdrop-blur-sm px-4 p-safe animate-in fade-in duration-200"
-    >
+    <!-- 打卡信息输入弹窗 (Modal) 加入 Transition -->
+    <transition name="modal">
       <div
-        class="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in zoom-in-95 duration-200"
+        v-if="showCheckInModal"
+        class="fixed inset-0 z-50 flex items-center justify-center px-4 p-safe"
       >
-        <div class="px-6 py-4 border-b border-zinc-100 flex items-center justify-between">
-          <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
-            <Edit3 class="w-5 h-5 text-blue-600" /> 记录今日学习
-          </h3>
-          <button
-            @click="closeCheckInModal"
-            class="text-zinc-400 hover:text-zinc-900 transition-colors"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
+        <!-- 黑色半透明背景 -->
+        <div
+          class="absolute inset-0 bg-zinc-900/40 backdrop-blur-sm"
+          @click="closeCheckInModal"
+        ></div>
 
-        <div class="p-6 space-y-6">
-          <!-- 学习时长滑动块 / 输入 -->
-          <div>
-            <label class="flex items-center justify-between text-sm font-medium text-zinc-700 mb-3">
-              <span>今日沉浸学习时长</span>
-              <span class="text-blue-600 font-bold text-lg"
-                >{{ checkInForm.studyHours }}
-                <span class="text-xs text-zinc-500 font-normal">小时</span></span
+        <!-- 弹窗内容区 -->
+        <div
+          class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden relative z-10 transform"
+        >
+          <div
+            class="px-6 py-4 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/50"
+          >
+            <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
+              <Edit3 class="w-5 h-5 text-blue-600" /> 记录今日学习
+            </h3>
+            <button
+              @click="closeCheckInModal"
+              class="text-zinc-400 hover:text-zinc-900 bg-white hover:bg-zinc-100 p-1.5 rounded-lg transition-all active:scale-95"
+            >
+              <X class="w-5 h-5" />
+            </button>
+          </div>
+
+          <div class="p-6 space-y-6">
+            <div>
+              <label
+                class="flex items-center justify-between text-sm font-medium text-zinc-700 mb-3"
               >
-            </label>
-            <input
-              type="range"
-              v-model="checkInForm.studyHours"
-              min="1"
-              max="24"
-              step="1"
-              class="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-            <div class="flex justify-between text-[10px] text-zinc-400 mt-2 font-medium">
-              <span>1h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span>
+                <span>今日沉浸学习时长</span>
+                <span class="text-blue-600 font-bold text-lg"
+                  >{{ checkInForm.studyHours }}
+                  <span class="text-xs text-zinc-500 font-normal">小时</span></span
+                >
+              </label>
+              <input
+                type="range"
+                v-model="checkInForm.studyHours"
+                min="1"
+                max="24"
+                step="1"
+                class="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-blue-600 transition-all hover:h-2.5"
+              />
+              <div class="flex justify-between text-[10px] text-zinc-400 mt-2 font-medium">
+                <span>1h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-zinc-700 mb-2"
+                >学习心得 / 备注 (选填)</label
+              >
+              <textarea
+                v-model="checkInForm.notes"
+                rows="3"
+                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none placeholder-zinc-400"
+                placeholder="今天复习了高数第二章，状态不错..."
+              ></textarea>
             </div>
           </div>
 
-          <!-- 心得备注 -->
-          <div>
-            <label class="block text-sm font-medium text-zinc-700 mb-2"
-              >学习心得 / 备注 (选填)</label
+          <div
+            class="px-6 py-4 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-end gap-3"
+          >
+            <button
+              @click="closeCheckInModal"
+              class="px-5 py-2.5 text-sm font-medium text-zinc-600 bg-white border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-all active:scale-95"
             >
-            <textarea
-              v-model="checkInForm.notes"
-              rows="3"
-              class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none placeholder-zinc-400"
-              placeholder="今天复习了高数第二章，状态不错..."
-            ></textarea>
+              取消
+            </button>
+            <button
+              @click="submitCheckIn"
+              :disabled="isSubmittingCheckIn"
+              class="px-5 py-2.5 text-sm font-medium text-white bg-zinc-900 rounded-xl hover:bg-zinc-800 disabled:opacity-50 transition-all hover:shadow-lg active:scale-95 flex items-center gap-2"
+            >
+              <span
+                v-if="isSubmittingCheckIn"
+                class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+              ></span>
+              {{ isSubmittingCheckIn ? '提交中...' : '提交打卡' }}
+            </button>
           </div>
         </div>
-
-        <div
-          class="px-6 py-4 bg-zinc-50/50 border-t border-zinc-100 flex items-center justify-end gap-3"
-        >
-          <button
-            @click="closeCheckInModal"
-            class="px-5 py-2.5 text-sm font-medium text-zinc-600 bg-white border border-zinc-200 rounded-xl hover:bg-zinc-50 transition-colors"
-          >
-            取消
-          </button>
-          <button
-            @click="submitCheckIn"
-            :disabled="isSubmittingCheckIn"
-            class="px-5 py-2.5 text-sm font-medium text-white bg-zinc-900 rounded-xl hover:bg-zinc-800 disabled:opacity-50 transition-all active:scale-95 flex items-center gap-2"
-          >
-            <span
-              v-if="isSubmittingCheckIn"
-              class="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-            ></span>
-            {{ isSubmittingCheckIn ? '提交中...' : '提交打卡' }}
-          </button>
-        </div>
       </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -787,9 +812,6 @@ const submitCheckIn = async () => {
 
       // 悄悄刷新一次排行榜，没准你刚打卡就上榜了呢！
       fetchLeaderboards()
-
-      // 可选: 加上一个简单的成功提示
-      // alert(`打卡成功！获得 ${result.data.points} 积分`)
     } else {
       alert(result.message || '打卡失败')
     }
@@ -803,20 +825,61 @@ const submitCheckIn = async () => {
 const goToPostDetail = (postId) => router.push(`/post/${postId}`)
 const goToUserCenter = () => router.push('/user_center')
 const goToCreatePost = () => router.push('/create_post')
-const goToMessageCenter = () => router.push('/messages')
+const goToMessageCenter = () => router.push('/message')
 </script>
 
 <style scoped>
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+.list-move, /* 移动时的平滑过渡 */
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* 适配刘海屏 */
-.p-safe {
-  padding-bottom: env(safe-area-inset-bottom);
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateY(20px) scale(0.98);
+}
+
+/* 确保离开的项目脱离文档流，后续项目能平滑移动上来 */
+.list-leave-active {
+  position: absolute;
+}
+
+/* ==================================================
+ * Vue 过渡动画: 信息流骨架屏切换交叉过渡 (Feed Transition)
+ * ================================================== */
+.feed-enter-active,
+.feed-leave-active {
+  transition: opacity 0.25s ease-in-out;
+}
+
+.feed-enter-from,
+.feed-leave-to {
+  opacity: 0;
+}
+
+/* ==================================================
+ * Vue 过渡动画: 弹窗呼吸感 (Modal Transition)
+ * ================================================== */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-active .bg-white,
+.modal-leave-active .bg-white {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* 回弹效果 */
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .bg-white,
+.modal-leave-to .bg-white {
+  opacity: 0;
+  transform: scale(0.9) translateY(10px);
 }
 </style>
