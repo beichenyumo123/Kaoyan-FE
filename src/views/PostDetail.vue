@@ -26,15 +26,12 @@
           </div>
         </div>
         <div class="flex items-center gap-4">
+          <!-- 移除了原有的右上角收藏按钮，仅保留分享 -->
           <button
             class="text-zinc-500 hover:text-zinc-900 transition-all hover:scale-110 active:scale-95"
+            title="分享"
           >
             <Share2 class="w-5 h-5" />
-          </button>
-          <button
-            class="text-zinc-500 hover:text-zinc-900 transition-all hover:scale-110 active:scale-95"
-          >
-            <Bookmark class="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -88,26 +85,51 @@
           </div>
 
           <div class="flex items-center justify-between pt-6 border-t border-zinc-100">
-            <!-- 带有纯CSS爆炸粒子动画的点赞按钮 -->
-            <button
-              @click="handleLike"
-              :class="[
-                'particle-burst flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform active:scale-90 border',
-                post.isLiked
-                  ? 'active bg-blue-50 text-blue-600 border-blue-200 shadow-sm hover:bg-blue-100'
-                  : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 hover:shadow-sm',
-              ]"
-            >
-              <ThumbsUp
-                class="w-4 h-4 transition-transform"
-                :class="{
-                  'fill-current animate-heartbeat': post.isLiked,
-                  '-rotate-12 scale-110': post.isLiked,
-                }"
-              />
-              <span>{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount }}</span>
-            </button>
-            <div class="flex items-center gap-4 text-zinc-400 text-sm">
+            <!-- 底部操作按钮组合区 -->
+            <div class="flex items-center gap-3 sm:gap-4">
+              <!-- 点赞按钮 -->
+              <button
+                @click="handleLike"
+                :class="[
+                  'particle-burst flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform active:scale-90 border',
+                  post.isLiked
+                    ? 'active bg-blue-50 text-blue-600 border-blue-200 shadow-sm hover:bg-blue-100'
+                    : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 hover:shadow-sm',
+                ]"
+              >
+                <ThumbsUp
+                  class="w-4 h-4 transition-transform"
+                  :class="{
+                    'fill-current animate-heartbeat': post.isLiked,
+                    '-rotate-12 scale-110': post.isLiked,
+                  }"
+                />
+                <span>{{ post.isLiked ? '已赞' : '点赞' }} {{ post.likeCount }}</span>
+              </button>
+
+              <!-- 收藏按钮 (移至此处并增加动画) -->
+              <button
+                @click="handleCollect"
+                :class="[
+                  'particle-burst-yellow flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all duration-300 transform active:scale-90 border',
+                  post.isCollected
+                    ? 'active bg-yellow-50 text-yellow-600 border-yellow-200 shadow-sm hover:bg-yellow-100'
+                    : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50 hover:text-zinc-900 hover:shadow-sm',
+                ]"
+              >
+                <Bookmark
+                  class="w-4 h-4 transition-transform"
+                  :class="{
+                    'fill-current animate-heartbeat': post.isCollected,
+                    '-rotate-12 scale-110': post.isCollected,
+                  }"
+                />
+                <span>{{ post.isCollected ? '已收藏' : '收藏' }}</span>
+              </button>
+            </div>
+
+            <!-- 右侧阅读量与评论量 -->
+            <div class="flex items-center gap-4 text-zinc-400 text-sm hidden sm:flex">
               <div class="flex items-center gap-1.5">
                 <Eye class="w-4 h-4" /><span>{{ post.viewCount }} 阅读</span>
               </div>
@@ -480,12 +502,22 @@ const fetchPostDetail = async (postId) => {
 
       if (token && post.value) {
         try {
+          // 获取点赞状态
           const statusRes = await fetch(`/api/interact/post/status?postId=${postId}`, {
             headers: { Authorization: `Bearer ${token}` },
           })
           const statusJson = await statusRes.json()
           if (statusJson.code === 200) {
             post.value.isLiked = statusJson.data
+          }
+
+          // 获取收藏状态
+          const collectRes = await fetch(`/api/interact/collect/status/${postId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const collectJson = await collectRes.json()
+          if (collectJson.code === 200) {
+            post.value.isCollected = collectJson.data
           }
         } catch (e) {}
       }
@@ -576,11 +608,16 @@ const executePublishComment = async (content, replyToId) => {
   isPublishingComment.value = true
   try {
     const token = getToken()
+    if (!token) {
+      alert('请先登录后再发表评论')
+      return false
+    }
+
     const response = await fetch(`/api/interact/comment/publish/${currentPostId}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         content: content,
@@ -626,25 +663,68 @@ const handlePublishInlineComment = async (targetComment) => {
 // 点赞
 const handleLike = async () => {
   if (!post.value) return
+
+  const token = getToken()
+  if (!token) {
+    alert('请先登录后再进行点赞操作')
+    return
+  }
+
   const originalStatus = post.value.isLiked
   post.value.isLiked = !post.value.isLiked
   post.value.likeCount += post.value.isLiked ? 1 : -1
 
   try {
-    const token = getToken()
     const response = await fetch(`/api/interact/post/like/${post.value.id}`, {
       method: 'POST',
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers: { Authorization: `Bearer ${token}` },
     })
     const result = await response.json()
 
     if (result.code !== 200) {
       post.value.isLiked = originalStatus
       post.value.likeCount += post.value.isLiked ? 1 : -1
+      alert(result.message || '点赞操作失败')
     }
   } catch (error) {
     post.value.isLiked = originalStatus
     post.value.likeCount += post.value.isLiked ? 1 : -1
+  }
+}
+
+// 收藏/取消收藏
+const handleCollect = async () => {
+  if (!post.value) return
+
+  const token = getToken()
+  if (!token) {
+    alert('请先登录后再进行收藏操作')
+    return
+  }
+
+  // 乐观更新 UI 状态
+  const originalStatus = post.value.isCollected
+  post.value.isCollected = !post.value.isCollected
+
+  try {
+    const response = await fetch(`/api/interact/collect/${post.value.id}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const result = await response.json()
+
+    if (result.code !== 200) {
+      // 失败回滚
+      post.value.isCollected = originalStatus
+      alert(result.message || '收藏操作失败')
+    } else {
+      // 成功则以后端返回的确切布尔值为准覆盖
+      post.value.isCollected = result.data
+    }
+  } catch (error) {
+    post.value.isCollected = originalStatus
+    console.error('收藏请求异常:', error)
+    alert('网络请求异常，请稍后重试')
   }
 }
 
@@ -707,7 +787,7 @@ const goToMessage = () => {
 }
 
 /* ==================================================
- * 纯 CSS 实现的粒子爆炸特效
+ * 点赞按钮：蓝色粒子爆炸特效
  * ================================================== */
 .particle-burst {
   position: relative;
@@ -729,6 +809,34 @@ const goToMessage = () => {
     0 24px 0 0 #60a5fa,
     24px 0 0 0 #60a5fa,
     -24px 0 0 0 #60a5fa;
+  transform: translate(-50%, -50%) scale(0);
+  animation: burst 0.6s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ==================================================
+ * 收藏按钮：黄色粒子爆炸特效
+ * ================================================== */
+.particle-burst-yellow {
+  position: relative;
+}
+.particle-burst-yellow.active::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  box-shadow:
+    -18px -18px 0 0 #eab308,
+    18px -18px 0 0 #eab308,
+    18px 18px 0 0 #eab308,
+    -18px 18px 0 0 #eab308,
+    0 -24px 0 0 #facc15,
+    0 24px 0 0 #facc15,
+    24px 0 0 0 #facc15,
+    -24px 0 0 0 #facc15;
   transform: translate(-50%, -50%) scale(0);
   animation: burst 0.6s ease-out forwards;
   pointer-events: none;

@@ -557,7 +557,7 @@ const handleLogin = async () => {
       localStorage.setItem('token', result.data.token)
       // TODO: 跳转主页 router.push('/')
       //router.push('/user_center')
-      router.push('/')
+      router.push('/community')
       console.log('登录成功！')
     } else {
       // 业务失败：显示后端返回的错误消息

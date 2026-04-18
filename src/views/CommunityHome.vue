@@ -282,11 +282,25 @@
                     <Eye class="w-4 h-4" />
                     <span>{{ post.viewCount }}</span>
                   </div>
-                  <button
-                    class="ml-auto flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-all duration-300 hover:scale-110 hover:rotate-12"
-                  >
-                    <Share2 class="w-4 h-4" />
-                  </button>
+
+                  <div class="ml-auto flex items-center gap-4">
+                    <button
+                      @click.stop="handleCollect(post)"
+                      :class="[
+                        'flex items-center gap-1.5 text-sm transition-all duration-300 hover:scale-110 active:scale-90',
+                        post.isCollected ? 'text-yellow-500' : 'hover:text-zinc-900',
+                      ]"
+                      title="收藏"
+                    >
+                      <Bookmark
+                        class="w-4 h-4 transition-transform"
+                        :class="{
+                          'fill-current': post.isCollected,
+                          '-rotate-12 scale-110': post.isCollected,
+                        }"
+                      />
+                    </button>
+                  </div>
                 </div>
               </article>
 
@@ -543,6 +557,7 @@ import {
   Trophy,
   Flame,
   X,
+  Bookmark,
 } from 'lucide-vue-next'
 import router from '@/router'
 
@@ -697,6 +712,17 @@ const fetchPosts = async (isLoadMore = false) => {
                   post.isLiked = statusJson.data
                 }
               } catch (e) {}
+
+              // 获取用户对该帖子的收藏状态
+              try {
+                const collectRes = await fetch(`/api/interact/collect/status/${post.id}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                })
+                const collectJson = await collectRes.json()
+                if (collectJson.code === 200) {
+                  post.isCollected = collectJson.data
+                }
+              } catch (e) {}
             }
 
             // 修复帖子评论数 0 问题：后端没做更新，前端强制查该贴的全部评论拿 length
@@ -807,6 +833,38 @@ const handleLike = async (post) => {
   } catch (error) {
     post.isLiked = originalStatus
     post.likeCount += post.isLiked ? 1 : -1
+  }
+}
+
+const handleCollect = async (post) => {
+  const token = getToken()
+  if (!token) {
+    alert('请先登录后再进行收藏操作')
+    return
+  }
+
+  // 乐观更新 UI 状态
+  const originalStatus = post.isCollected
+  post.isCollected = !post.isCollected
+
+  try {
+    const response = await fetch(`/api/interact/collect/${post.id}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const result = await response.json()
+
+    if (result.code !== 200) {
+      // 失败回滚
+      post.isCollected = originalStatus
+      alert(result.message || '收藏操作失败')
+    } else {
+      // 成功则以后端返回的确切布尔值为准覆盖
+      post.isCollected = result.data
+    }
+  } catch (error) {
+    post.isCollected = originalStatus
+    console.error('收藏请求异常:', error)
   }
 }
 

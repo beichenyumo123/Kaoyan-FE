@@ -150,51 +150,125 @@
                 </div>
               </div>
 
-              <!-- 预留的帖子/获赞数据坑位 (如果后端暂时没有可以显示占位符或隐藏) -->
+              <!-- 帖子/获赞数据已对接真实接口 -->
               <div class="bg-zinc-50 rounded-xl p-4 border border-zinc-100/50">
                 <div class="text-xs font-medium text-zinc-500 flex items-center gap-1.5 mb-2">
                   <FileText class="w-3.5 h-3.5" /> 发布帖子
                 </div>
-                <div class="font-bold text-zinc-900 text-lg">-</div>
+                <div class="font-bold text-zinc-900 text-lg">
+                  {{ userStats?.postCount || 0 }}
+                </div>
               </div>
 
               <div class="bg-zinc-50 rounded-xl p-4 border border-zinc-100/50">
                 <div class="text-xs font-medium text-zinc-500 flex items-center gap-1.5 mb-2">
                   <ThumbsUp class="w-3.5 h-3.5" /> 获得点赞
                 </div>
-                <div class="font-bold text-zinc-900 text-lg">-</div>
+                <div class="font-bold text-zinc-900 text-lg">
+                  {{ userStats?.likeReceivedCount || 0 }}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ================= 标签页：他的动态 (模拟占位) ================= -->
+        <!-- ================= 标签页：发布的帖子列表 ================= -->
         <div class="mt-8">
+          <!-- 简化了Tab，只保留帖子 -->
           <div class="flex items-center gap-6 border-b border-zinc-200 mb-6">
-            <button class="pb-3 text-sm font-bold text-zinc-900 border-b-2 border-zinc-900">
-              他的动态
-            </button>
-            <button
-              class="pb-3 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+            <h2 class="pb-3 text-sm font-bold text-zinc-900 border-b-2 border-zinc-900">
+              发布的帖子
+            </h2>
+          </div>
+
+          <!-- 帖子列表有数据的情况 -->
+          <div v-if="userPosts.length > 0" class="space-y-4">
+            <div
+              v-for="post in userPosts"
+              :key="post.id"
+              @click="goToPostDetail(post.id)"
+              class="bg-white border border-zinc-200 rounded-xl p-5 hover:shadow-md hover:border-zinc-300 transition-all cursor-pointer"
             >
-              帖子
-            </button>
-            <button
-              class="pb-3 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
-            >
-              资料
-            </button>
+              <h3 class="text-base font-bold text-zinc-900 mb-2 line-clamp-1">{{ post.title }}</h3>
+              <p class="text-sm text-zinc-500 line-clamp-2 mb-4 leading-relaxed">
+                {{ post.content }}
+              </p>
+
+              <!-- 标签区域 -->
+              <div v-if="post.tags && post.tags.length" class="flex flex-wrap gap-2 mb-4">
+                <span
+                  v-for="tag in post.tags"
+                  :key="tag"
+                  class="px-2.5 py-1 bg-zinc-100 text-zinc-600 text-xs font-medium rounded-md"
+                >
+                  #{{ tag }}
+                </span>
+              </div>
+
+              <!-- 底部交互数据 -->
+              <div class="flex items-center gap-5 text-xs font-medium text-zinc-400">
+                <span class="flex items-center gap-1.5" title="浏览量">
+                  <Eye class="w-4 h-4" /> {{ post.viewCount || 0 }}
+                </span>
+                <span
+                  class="flex items-center gap-1.5"
+                  :class="{ 'text-blue-500': post.isLiked }"
+                  title="点赞数"
+                >
+                  <ThumbsUp class="w-4 h-4" /> {{ post.likeCount || 0 }}
+                </span>
+                <span class="flex items-center gap-1.5" title="评论数">
+                  <MessageSquare class="w-4 h-4" /> {{ post.commentCount || 0 }}
+                </span>
+                <span class="flex items-center gap-1.5 ml-auto text-zinc-400 font-normal">
+                  <Clock class="w-3.5 h-3.5" /> {{ formatDate(post.createdAt) }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 加载更多按钮 -->
+            <div class="text-center pt-4 pb-8">
+              <button
+                v-if="hasMorePosts"
+                @click="loadMorePosts"
+                :disabled="isLoadingPosts"
+                class="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-full text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+              >
+                {{ isLoadingPosts ? '加载中...' : '加载更多' }}
+              </button>
+              <p v-else class="text-xs text-zinc-400">已经到底啦 ~</p>
+            </div>
           </div>
 
           <!-- 空状态展示 -->
-          <div class="bg-white border border-zinc-200 rounded-2xl p-12 text-center shadow-sm">
+          <div
+            v-else-if="!isLoadingPosts"
+            class="bg-white border border-zinc-200 rounded-2xl p-12 text-center shadow-sm"
+          >
             <div
               class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-4"
             >
               <Ghost class="w-8 h-8 text-zinc-300" />
             </div>
-            <h3 class="text-sm font-bold text-zinc-900">暂无动态</h3>
-            <p class="text-xs text-zinc-500 mt-1">这个用户很懒，还没有留下什么痕迹~</p>
+            <h3 class="text-sm font-bold text-zinc-900">暂无帖子</h3>
+            <p class="text-xs text-zinc-500 mt-1">这个用户很懒，还没有发布过任何帖子~</p>
+          </div>
+
+          <!-- 初次加载列表状态 -->
+          <div v-if="userPosts.length === 0 && isLoadingPosts" class="space-y-4">
+            <div
+              v-for="i in 3"
+              :key="i"
+              class="bg-white border border-zinc-200 rounded-xl p-5 animate-pulse"
+            >
+              <div class="h-5 bg-zinc-200 rounded w-1/3 mb-4"></div>
+              <div class="h-4 bg-zinc-200 rounded w-full mb-2"></div>
+              <div class="h-4 bg-zinc-200 rounded w-2/3 mb-6"></div>
+              <div class="flex gap-4">
+                <div class="h-4 bg-zinc-200 rounded w-12"></div>
+                <div class="h-4 bg-zinc-200 rounded w-12"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -232,16 +306,27 @@ import {
   Ghost,
   UserX,
   Settings,
+  Eye,
+  MessageSquare,
+  Clock,
 } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 
+// 基础信息
 const userInfo = ref(null)
 const isLoading = ref(true)
 const myUserId = ref(null)
-
 const targetUserId = route.params.id
+
+// 新增：用户统计与帖子列表状态
+const userStats = ref(null)
+const userPosts = ref([])
+const pageNum = ref(1)
+const pageSize = ref(10)
+const hasMorePosts = ref(true)
+const isLoadingPosts = ref(false)
 
 // 获取 Token
 const getToken = () => localStorage.getItem('token')
@@ -252,17 +337,22 @@ const isSelf = computed(() => {
 })
 
 onMounted(async () => {
-  // 先获取自己的信息（用于对比是不是自己）
+  // 1. 获取自身信息用于鉴权比对
   await fetchMyInfo()
-  // 再获取目标用户的主页信息
+
+  // 2. 如果存在目标用户，则并行拉取用户基础信息、统计数据和第一页帖子
   if (targetUserId) {
-    await fetchUserInfo(targetUserId)
+    await Promise.all([
+      fetchUserInfo(targetUserId),
+      fetchUserStats(targetUserId),
+      fetchUserPosts(targetUserId, false),
+    ])
   } else {
     isLoading.value = false
   }
 })
 
-// 拉取我自己的基础信息
+// === 获取自身信息 ===
 const fetchMyInfo = async () => {
   try {
     const token = getToken()
@@ -279,7 +369,7 @@ const fetchMyInfo = async () => {
   }
 }
 
-// [真实请求] GET /api/users/{userId} 获取目标用户信息
+// === 获取目标用户基础信息 ===
 const fetchUserInfo = async (id) => {
   isLoading.value = true
   try {
@@ -301,12 +391,76 @@ const fetchUserInfo = async (id) => {
   }
 }
 
-// 交互与跳转逻辑
-const goBack = () => router.back()
-const goToHome = () => router.push('/')
-const goToSettings = () => router.push('/user_center')
+// === [新增] 获取用户统计数据 (发帖数/获赞数) ===
+// 提示: 这里的 URL 路径如果后端 Controller 是 `@RequestMapping("/api/user-stats")` 等，请根据实际调整。
+const fetchUserStats = async (id) => {
+  try {
+    const token = getToken()
+    const response = await fetch(`/api/interact/stats/${id}`, {
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      userStats.value = result.data
+    }
+  } catch (error) {
+    console.error('获取用户统计数据失败:', error)
+  }
+}
 
-// 跳转到私信页面，并自动选中该用户
+// === [新增] 分页获取用户发布的帖子列表 ===
+// 提示: 这里的 URL 路径暂定为 `/api/posts/user/${id}/list`。请根据后端的模块前缀修改。
+const fetchUserPosts = async (id, isLoadMore = false) => {
+  if (isLoadingPosts.value || !hasMorePosts.value) return
+  isLoadingPosts.value = true
+
+  try {
+    const token = getToken()
+    const response = await fetch(
+      `/api/posts/user/${id}/list?pageNum=${pageNum.value}&pageSize=${pageSize.value}`,
+      {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      },
+    )
+    const result = await response.json()
+
+    if (result.code === 200 && result.data) {
+      // 适配后端 PageInfo 结构, 假设有 list / records 属性
+      const listData = result.data.list || result.data.records || []
+
+      if (isLoadMore) {
+        userPosts.value.push(...listData)
+      } else {
+        userPosts.value = listData
+      }
+
+      // 判断是否还有下一页
+      if (listData.length < pageSize.value) {
+        hasMorePosts.value = false
+      } else {
+        pageNum.value++
+      }
+    }
+  } catch (error) {
+    console.error('获取用户帖子列表失败:', error)
+  } finally {
+    isLoadingPosts.value = false
+  }
+}
+
+// 加载更多帖子
+const loadMorePosts = () => {
+  if (targetUserId) {
+    fetchUserPosts(targetUserId, true)
+  }
+}
+
+// === 交互与跳转逻辑 ===
+const goBack = () => router.back()
+const goToHome = () => router.push('/community')
+const goToSettings = () => router.push('/user_center')
+const goToPostDetail = (postId) => router.push(`/post/${postId}`)
+
 const goToMessage = () => {
   if (!userInfo.value) return
   router.push({
@@ -317,6 +471,16 @@ const goToMessage = () => {
       avatar: userInfo.value.avatarUrl,
     },
   })
+}
+
+// === 工具函数：格式化时间 ===
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 </script>
 

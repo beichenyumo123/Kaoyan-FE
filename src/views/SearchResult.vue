@@ -412,7 +412,7 @@ const handleLike = async (post) => {
 // --- 路由跳转 ---
 
 const goBack = () => router.back()
-const goToHome = () => router.push('/')
+const goToHome = () => router.push('/community')
 const goToPostDetail = (postId) => router.push(`/post/${postId}`)
 
 // 跳转到他人主页的方法

@@ -11,7 +11,7 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/auth',
+      path: '/',
       name: 'auth',
       component: AuthPage, // 首页直接显示登录页
     },
@@ -21,7 +21,7 @@ const router = createRouter({
       component: UserCenter, //用户中心
     },
     {
-      path: '/',
+      path: '/community',
       name: 'CommunityHome',
       component: CommunityHome,
     },

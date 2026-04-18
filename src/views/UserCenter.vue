@@ -17,12 +17,12 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
-        <!-- 左侧：用户卡片 (简略信息) -->
+        <!-- ================= 左侧：用户卡片 (简略信息) ================= -->
         <div class="md:col-span-4 space-y-6">
           <div
             class="bg-white border border-zinc-200 rounded-2xl p-6 text-center shadow-sm relative overflow-hidden"
           >
-            <!-- 顶部装饰色块（附带全局设定的动态背景流转动画） -->
+            <!-- 顶部装饰色块 -->
             <div
               class="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-zinc-800 to-zinc-900"
               style="background-size: 200% 200%; animation: gradientShift 8s ease infinite"
@@ -49,14 +49,23 @@
               </span>
             </div>
 
-            <div class="mt-6 pt-6 border-t border-zinc-100 grid grid-cols-2 gap-4">
+            <!-- 数据统计网格 (接入真实数据) -->
+            <div
+              class="mt-6 pt-6 border-t border-zinc-100 grid grid-cols-3 gap-2 divide-x divide-zinc-100"
+            >
               <div>
-                <div class="text-2xl font-bold text-zinc-900">{{ user.points || 0 }}</div>
-                <div class="text-xs text-zinc-500 font-medium">总积分</div>
+                <div class="text-xl font-bold text-zinc-900">{{ user.points || 0 }}</div>
+                <div class="text-xs text-zinc-500 font-medium mt-1">积分</div>
               </div>
               <div>
-                <div class="text-2xl font-bold text-zinc-900">12</div>
-                <div class="text-xs text-zinc-500 font-medium">发布帖子</div>
+                <div class="text-xl font-bold text-zinc-900">{{ userStats?.postCount || 0 }}</div>
+                <div class="text-xs text-zinc-500 font-medium mt-1">帖子</div>
+              </div>
+              <div>
+                <div class="text-xl font-bold text-zinc-900">
+                  {{ userStats?.likeReceivedCount || 0 }}
+                </div>
+                <div class="text-xs text-zinc-500 font-medium mt-1">获赞</div>
               </div>
             </div>
           </div>
@@ -65,17 +74,35 @@
           <div class="bg-white border border-zinc-200 rounded-2xl p-2 shadow-sm">
             <nav class="space-y-1">
               <button
-                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl bg-zinc-900 text-white font-medium transition-colors"
+                @click="activeTab = 'profile'"
+                :class="
+                  activeTab === 'profile'
+                    ? 'bg-zinc-900 text-white'
+                    : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
+                "
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl font-medium transition-colors"
               >
                 <User class="w-4 h-4" /> 资料设置
               </button>
               <button
-                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                @click="activeTab = 'posts'"
+                :class="
+                  activeTab === 'posts'
+                    ? 'bg-zinc-900 text-white'
+                    : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
+                "
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl font-medium transition-colors"
               >
                 <FileText class="w-4 h-4" /> 我的帖子
               </button>
               <button
-                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition-colors"
+                @click="activeTab = 'collections'"
+                :class="
+                  activeTab === 'collections'
+                    ? 'bg-zinc-900 text-white'
+                    : 'text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900'
+                "
+                class="w-full flex items-center gap-3 px-4 py-3 text-sm rounded-xl font-medium transition-colors"
               >
                 <Star class="w-4 h-4" /> 我的收藏
               </button>
@@ -83,9 +110,13 @@
           </div>
         </div>
 
-        <!-- 右侧：详情表单与设置 -->
+        <!-- ================= 右侧：主体内容区 ================= -->
         <div class="md:col-span-8">
-          <div class="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <!-- 标签页：资料设置 -->
+          <div
+            v-if="activeTab === 'profile'"
+            class="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm"
+          >
             <div class="flex items-center justify-between mb-8">
               <div>
                 <h3 class="text-lg font-bold text-zinc-900">基本信息</h3>
@@ -132,7 +163,7 @@
               </div>
             </div>
 
-            <!-- 编辑表单 (对应 PUT /api/users/me 和 UserUpdateDTO) -->
+            <!-- 编辑表单 -->
             <form
               v-else
               @submit.prevent="handleSave"
@@ -209,11 +240,230 @@
               </div>
             </form>
           </div>
+
+          <!-- 标签页：我的帖子 -->
+          <div
+            v-else-if="activeTab === 'posts'"
+            class="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm"
+          >
+            <div class="mb-8">
+              <h3 class="text-lg font-bold text-zinc-900">我的帖子</h3>
+              <p class="text-sm text-zinc-500 mt-1">您在社区发布的所有讨论与经验分享</p>
+            </div>
+
+            <!-- 帖子列表有数据的情况 -->
+            <div v-if="userPosts.length > 0" class="space-y-4">
+              <div
+                v-for="post in userPosts"
+                :key="post.id"
+                @click="goToPostDetail(post.id)"
+                class="bg-zinc-50/50 border border-zinc-200 rounded-xl p-5 hover:bg-white hover:shadow-md hover:border-zinc-300 transition-all cursor-pointer"
+              >
+                <h3 class="text-base font-bold text-zinc-900 mb-2 line-clamp-1">
+                  {{ post.title }}
+                </h3>
+                <p class="text-sm text-zinc-500 line-clamp-2 mb-4 leading-relaxed">
+                  {{ post.content }}
+                </p>
+
+                <!-- 标签区域 -->
+                <div v-if="post.tags && post.tags.length" class="flex flex-wrap gap-2 mb-4">
+                  <span
+                    v-for="tag in post.tags"
+                    :key="tag"
+                    class="px-2.5 py-1 bg-white border border-zinc-200 text-zinc-600 text-xs font-medium rounded-md"
+                  >
+                    #{{ tag }}
+                  </span>
+                </div>
+
+                <!-- 底部交互数据 -->
+                <div class="flex items-center gap-5 text-xs font-medium text-zinc-400">
+                  <span class="flex items-center gap-1.5" title="浏览量">
+                    <Eye class="w-4 h-4" /> {{ post.viewCount || 0 }}
+                  </span>
+                  <span
+                    class="flex items-center gap-1.5"
+                    :class="{ 'text-blue-500': post.isLiked }"
+                    title="点赞数"
+                  >
+                    <ThumbsUp class="w-4 h-4" /> {{ post.likeCount || 0 }}
+                  </span>
+                  <span class="flex items-center gap-1.5" title="评论数">
+                    <MessageSquare class="w-4 h-4" /> {{ post.commentCount || 0 }}
+                  </span>
+                  <span class="flex items-center gap-1.5 ml-auto text-zinc-400 font-normal">
+                    <Clock class="w-3.5 h-3.5" /> {{ formatDate(post.createdAt) }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 加载更多按钮 -->
+              <div class="text-center pt-4">
+                <button
+                  v-if="hasMorePosts"
+                  @click="loadMorePosts"
+                  :disabled="isLoadingPosts"
+                  class="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-full text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                >
+                  {{ isLoadingPosts ? '加载中...' : '加载更多' }}
+                </button>
+                <p v-else class="text-xs text-zinc-400">已经到底啦 ~</p>
+              </div>
+            </div>
+
+            <!-- 空状态展示 -->
+            <div
+              v-else-if="!isLoadingPosts"
+              class="border border-zinc-200 border-dashed rounded-2xl p-12 text-center bg-zinc-50/50"
+            >
+              <div
+                class="w-16 h-16 bg-white shadow-sm rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <Ghost class="w-8 h-8 text-zinc-300" />
+              </div>
+              <h3 class="text-sm font-bold text-zinc-900">暂无帖子</h3>
+              <p class="text-xs text-zinc-500 mt-1">您还没有在社区发布过内容哦~</p>
+            </div>
+
+            <!-- 初次加载列表状态 -->
+            <div v-if="userPosts.length === 0 && isLoadingPosts" class="space-y-4">
+              <div
+                v-for="i in 3"
+                :key="i"
+                class="bg-zinc-50/50 border border-zinc-200 rounded-xl p-5 animate-pulse"
+              >
+                <div class="h-5 bg-zinc-200 rounded w-1/3 mb-4"></div>
+                <div class="h-4 bg-zinc-200 rounded w-full mb-2"></div>
+                <div class="h-4 bg-zinc-200 rounded w-2/3 mb-6"></div>
+                <div class="flex gap-4">
+                  <div class="h-4 bg-zinc-200 rounded w-12"></div>
+                  <div class="h-4 bg-zinc-200 rounded w-12"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================= 标签页：我的收藏 ================= -->
+          <div
+            v-else-if="activeTab === 'collections'"
+            class="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm"
+          >
+            <div class="mb-8">
+              <h3 class="text-lg font-bold text-zinc-900">我的收藏</h3>
+              <p class="text-sm text-zinc-500 mt-1">您在社区中收藏的所有精华内容</p>
+            </div>
+
+            <!-- 收藏列表有数据的情况 -->
+            <div v-if="collections.length > 0" class="space-y-4">
+              <div
+                v-for="post in collections"
+                :key="post.id"
+                @click="goToPostDetail(post.id)"
+                class="bg-zinc-50/50 border border-zinc-200 rounded-xl p-5 hover:bg-white hover:shadow-md hover:border-zinc-300 transition-all cursor-pointer"
+              >
+                <!-- 作者信息 (收藏的帖子可能来自不同作者) -->
+                <div class="flex items-center gap-2 mb-3">
+                  <img
+                    :src="
+                      post.author?.avatarUrl ||
+                      'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
+                    "
+                    class="w-5 h-5 rounded-full object-cover bg-zinc-200"
+                  />
+                  <span class="text-xs font-medium text-zinc-600">{{
+                    post.author?.username || '匿名用户'
+                  }}</span>
+                  <span class="text-zinc-300 text-xs">•</span>
+                  <span class="text-xs text-zinc-400">{{ formatDate(post.createdAt) }}</span>
+                </div>
+
+                <h3 class="text-base font-bold text-zinc-900 mb-2 line-clamp-1">
+                  {{ post.title }}
+                </h3>
+                <p class="text-sm text-zinc-500 line-clamp-2 mb-4 leading-relaxed">
+                  {{ post.content }}
+                </p>
+
+                <!-- 标签区域 -->
+                <div v-if="post.tags && post.tags.length" class="flex flex-wrap gap-2 mb-4">
+                  <span
+                    v-for="tag in post.tags"
+                    :key="tag"
+                    class="px-2.5 py-1 bg-white border border-zinc-200 text-zinc-600 text-xs font-medium rounded-md"
+                  >
+                    #{{ tag }}
+                  </span>
+                </div>
+
+                <!-- 底部交互数据 -->
+                <div class="flex items-center gap-5 text-xs font-medium text-zinc-400">
+                  <span class="flex items-center gap-1.5" title="浏览量">
+                    <Eye class="w-4 h-4" /> {{ post.viewCount || 0 }}
+                  </span>
+                  <span
+                    class="flex items-center gap-1.5"
+                    :class="{ 'text-blue-500': post.isLiked }"
+                    title="点赞数"
+                  >
+                    <ThumbsUp class="w-4 h-4" /> {{ post.likeCount || 0 }}
+                  </span>
+                  <span class="flex items-center gap-1.5" title="评论数">
+                    <MessageSquare class="w-4 h-4" /> {{ post.commentCount || 0 }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- 加载更多按钮 -->
+              <div class="text-center pt-4">
+                <button
+                  v-if="hasMoreCollections"
+                  @click="loadMoreCollections"
+                  :disabled="isLoadingCollections"
+                  class="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 rounded-full text-sm font-medium hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                >
+                  {{ isLoadingCollections ? '加载中...' : '加载更多' }}
+                </button>
+                <p v-else class="text-xs text-zinc-400">已经到底啦 ~</p>
+              </div>
+            </div>
+
+            <!-- 空状态展示 -->
+            <div
+              v-else-if="!isLoadingCollections"
+              class="border border-zinc-200 border-dashed rounded-2xl p-12 text-center bg-zinc-50/50"
+            >
+              <div
+                class="w-16 h-16 bg-white shadow-sm rounded-full flex items-center justify-center mx-auto mb-4"
+              >
+                <Star class="w-8 h-8 text-zinc-300" />
+              </div>
+              <h3 class="text-sm font-bold text-zinc-900">暂无收藏</h3>
+              <p class="text-xs text-zinc-500 mt-1">去社区逛逛，收藏你感兴趣的帖子吧~</p>
+            </div>
+
+            <!-- 初次加载列表状态 -->
+            <div v-if="collections.length === 0 && isLoadingCollections" class="space-y-4">
+              <div
+                v-for="i in 3"
+                :key="i"
+                class="bg-zinc-50/50 border border-zinc-200 rounded-xl p-5 animate-pulse"
+              >
+                <div class="h-5 bg-zinc-200 rounded w-1/3 mb-4"></div>
+                <div class="h-4 bg-zinc-200 rounded w-full mb-2"></div>
+                <div class="h-4 bg-zinc-200 rounded w-2/3 mb-6"></div>
+                <div class="flex gap-4">
+                  <div class="h-4 bg-zinc-200 rounded w-12"></div>
+                  <div class="h-4 bg-zinc-200 rounded w-12"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- 成功提示 Toast (无业务逻辑，纯UI渲染交互) -->
+    <!-- 成功提示 Toast -->
     <transition name="toast">
       <div
         v-if="showSuccessToast"
@@ -251,16 +501,39 @@ import {
   Shield,
   FileText,
   Star,
+  Eye,
+  MessageSquare,
+  Clock,
+  ThumbsUp,
+  Ghost,
 } from 'lucide-vue-next'
-import router from '@/router'
+import { useRouter } from 'vue-router'
 
-// --- 状态数据 ---
+const router = useRouter()
+
+// --- 基础状态数据 ---
 const user = ref({})
 const isEditing = ref(false)
 const isSaving = ref(false)
-
-// 用于控制动画展示的 UI 状态
 const showSuccessToast = ref(false)
+
+// 当前选中的 Tab (可选值: 'profile', 'posts', 'collections')
+const activeTab = ref('profile')
+
+// --- 用户发帖列表状态 ---
+const userStats = ref(null)
+const userPosts = ref([])
+const pageNum = ref(1)
+const pageSize = ref(10)
+const hasMorePosts = ref(true)
+const isLoadingPosts = ref(false)
+
+// --- 新增：用户收藏列表状态 ---
+const collections = ref([])
+const collectionsPageNum = ref(1)
+const collectionsPageSize = ref(10)
+const hasMoreCollections = ref(true)
+const isLoadingCollections = ref(false)
 
 // 对应 UserUpdateDTO
 const editForm = reactive({
@@ -275,10 +548,18 @@ const getToken = () => localStorage.getItem('token')
 
 // --- 初始化 ---
 onMounted(async () => {
+  // 获取自身信息
   await fetchUserProfile()
+
+  // 如果成功拿到自身信息 ID，并行拉取统计、发帖数据、以及收藏数据
+  if (user.value && user.value.id) {
+    fetchUserStats(user.value.id)
+    fetchUserPosts(user.value.id, false)
+    fetchMyCollections(false) // 初始拉取第一页收藏
+  }
 })
 
-// [真实请求] GET /api/users/me 获取当前用户信息
+// === 获取当前用户信息 ===
 const fetchUserProfile = async () => {
   try {
     const token = getToken()
@@ -295,15 +576,114 @@ const fetchUserProfile = async () => {
       user.value = result.data
     } else {
       console.error('获取用户信息失败:', result.message)
-      // 处理未登录情况，例如跳转登录页
-      // if (result.code === 401) router.push('/login')
     }
   } catch (error) {
     console.error('网络请求异常:', error)
   }
 }
 
-// 开启编辑，填充数据
+// === 获取用户统计数据 ===
+const fetchUserStats = async (id) => {
+  try {
+    const token = getToken()
+    const response = await fetch(`/api/interact/stats/${id}`, {
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
+    })
+    const result = await response.json()
+    if (result.code === 200) {
+      userStats.value = result.data
+    }
+  } catch (error) {
+    console.error('获取用户统计数据失败:', error)
+  }
+}
+
+// === 分页获取用户发布的帖子 ===
+const fetchUserPosts = async (id, isLoadMore = false) => {
+  if (isLoadingPosts.value || !hasMorePosts.value) return
+  isLoadingPosts.value = true
+
+  try {
+    const token = getToken()
+    const response = await fetch(
+      `/api/posts/user/${id}/list?pageNum=${pageNum.value}&pageSize=${pageSize.value}`,
+      {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      },
+    )
+    const result = await response.json()
+
+    if (result.code === 200 && result.data) {
+      const listData = result.data.list || result.data.records || []
+
+      if (isLoadMore) {
+        userPosts.value.push(...listData)
+      } else {
+        userPosts.value = listData
+      }
+
+      if (listData.length < pageSize.value) {
+        hasMorePosts.value = false
+      } else {
+        pageNum.value++
+      }
+    }
+  } catch (error) {
+    console.error('获取用户帖子列表失败:', error)
+  } finally {
+    isLoadingPosts.value = false
+  }
+}
+
+const loadMorePosts = () => {
+  if (user.value && user.value.id) {
+    fetchUserPosts(user.value.id, true)
+  }
+}
+
+// === 新增：分页获取当前用户的收藏帖子列表 ===
+const fetchMyCollections = async (isLoadMore = false) => {
+  if (isLoadingCollections.value || !hasMoreCollections.value) return
+  isLoadingCollections.value = true
+
+  try {
+    const token = getToken()
+    const response = await fetch(
+      `/api/interact/collect/my?pageNum=${collectionsPageNum.value}&pageSize=${collectionsPageSize.value}`,
+      {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      },
+    )
+    const result = await response.json()
+
+    if (result.code === 200 && result.data) {
+      const listData = result.data.list || result.data.records || []
+
+      if (isLoadMore) {
+        collections.value.push(...listData)
+      } else {
+        collections.value = listData
+      }
+
+      // 根据拉取到的数据量判断是否有下一页
+      if (listData.length < collectionsPageSize.value) {
+        hasMoreCollections.value = false
+      } else {
+        collectionsPageNum.value++
+      }
+    }
+  } catch (error) {
+    console.error('获取用户收藏列表失败:', error)
+  } finally {
+    isLoadingCollections.value = false
+  }
+}
+
+const loadMoreCollections = () => {
+  fetchMyCollections(true)
+}
+
+// === 编辑用户资料逻辑 ===
 const startEdit = () => {
   editForm.username = user.value.username || ''
   editForm.avatarUrl = user.value.avatarUrl || ''
@@ -312,15 +692,12 @@ const startEdit = () => {
   isEditing.value = true
 }
 
-// [真实请求] PUT /api/users/me 更新用户信息
 const handleSave = async () => {
   isSaving.value = true
 
   try {
     const token = getToken()
     const requestPayload = { ...editForm }
-
-    console.log('发送 PUT /api/users/me:', requestPayload)
 
     const response = await fetch('/api/users/me', {
       method: 'PUT',
@@ -333,19 +710,15 @@ const handleSave = async () => {
 
     const result = await response.json()
     if (result.code === 200) {
-      // 成功：使用接口返回的最新用户数据更新本地状态
       user.value = result.data
       isEditing.value = false
-      console.log('资料更新成功！')
 
-      // 触发 UI 提示气泡，3秒后自动消失
       showSuccessToast.value = true
       setTimeout(() => {
         showSuccessToast.value = false
       }, 3000)
     } else {
       console.error('更新失败:', result.message)
-      // TODO: 添加页面 Toast 错误提示
     }
   } catch (error) {
     console.error('更新网络请求异常:', error)
@@ -354,10 +727,17 @@ const handleSave = async () => {
   }
 }
 
-const goBack = () => {
-  // router.push('/') 或 router.back()
-  router.back()
-  console.log('返回上一页')
+// === 跳转与工具函数 ===
+const goBack = () => router.back()
+const goToPostDetail = (postId) => router.push(`/post/${postId}`)
+
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 </script>
 
