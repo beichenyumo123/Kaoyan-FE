@@ -192,7 +192,7 @@ const handlePublish = async () => {
     if (result.code === 200) {
       console.log('发布成功，帖子ID:', result.data)
       // 发布成功，跳转回社区首页 (或者直接跳转到刚发布的帖子详情页)
-      router.push('/community')
+      router.push('/')
     } else {
       console.error('发布失败:', result.message)
       alert(result.message || '发布失败')

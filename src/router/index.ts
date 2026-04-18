@@ -6,12 +6,12 @@ import PostDetail from '@/views/PostDetail.vue'
 import CreatePost from '@/views/CreatePost.vue'
 import MessageCenter from '@/views/MessageCenter.vue'
 import SearchResult from '@/views/SearchResult.vue'
-
+import UserProfile from '@/views/UserProfile.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: '/',
+      path: '/auth',
       name: 'auth',
       component: AuthPage, // 首页直接显示登录页
     },
@@ -21,7 +21,7 @@ const router = createRouter({
       component: UserCenter, //用户中心
     },
     {
-      path: '/community',
+      path: '/',
       name: 'CommunityHome',
       component: CommunityHome,
     },
@@ -44,6 +44,11 @@ const router = createRouter({
       path: '/search',
       name: 'Search',
       component: SearchResult,
+    },
+    {
+      path: '/user/:id',
+      name: 'UserProfile',
+      component: UserProfile,
     },
   ],
 })

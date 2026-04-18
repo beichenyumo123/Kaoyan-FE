@@ -63,7 +63,7 @@
 
       <!-- ================= 左侧 - 帖子正文与评论 ================= -->
       <div v-else-if="post" class="lg:col-span-8 space-y-6">
-        <!-- 帖子正文卡片 (加了滑动入场动画 animate-fade-in-up) -->
+        <!-- 帖子正文卡片 -->
         <article
           class="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm animate-fade-in-up hover:shadow-md transition-shadow duration-300"
         >
@@ -106,37 +106,37 @@
                 <Eye class="w-4 h-4" /><span>{{ post.viewCount }} 阅读</span>
               </div>
               <div class="flex items-center gap-1.5">
-                <MessageSquare class="w-4 h-4" /><span>{{ comments.length }} 评论</span>
+                <MessageSquare class="w-4 h-4" /><span>{{ totalComments }} 评论</span>
               </div>
             </div>
           </div>
         </article>
 
-        <!-- ================= 评论区 ================= -->
+        <!-- ================= 力扣式楼中楼评论区 ================= -->
         <div
           id="comments"
           class="bg-white border border-zinc-200 rounded-2xl p-6 sm:p-8 shadow-sm animate-fade-in-up animation-delay-100"
         >
-          <h3 class="text-lg font-bold text-zinc-900 mb-6">全部评论 ({{ comments.length }})</h3>
+          <h3 class="text-lg font-bold text-zinc-900 mb-6">全部评论 ({{ totalComments }})</h3>
 
-          <!-- 评论输入框 -->
-          <div class="flex gap-4 mb-8">
+          <!-- 顶部发布新根评论输入框 -->
+          <div class="flex gap-4 mb-10">
             <img
               :src="
                 currentUser.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
               "
-              class="w-8 h-8 rounded-full bg-zinc-100 shrink-0 mt-1 object-cover border border-zinc-200 transition-transform hover:rotate-6"
+              class="w-10 h-10 rounded-full bg-zinc-100 shrink-0 object-cover border border-zinc-200 transition-transform hover:rotate-6"
             />
-            <div class="flex-1">
+            <div class="flex-1 flex flex-col">
               <textarea
                 v-model="newCommentContent"
                 rows="3"
-                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none hover:bg-zinc-100 focus:hover:bg-white"
-                placeholder="参与讨论，友善发言..."
+                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none hover:bg-zinc-100 focus:hover:bg-white rounded-xl"
+                placeholder="分享你的看法..."
               ></textarea>
               <div class="flex justify-end mt-2">
                 <button
-                  @click="handlePublishComment"
+                  @click="handlePublishTopComment"
                   :disabled="isPublishingComment || !newCommentContent.trim()"
                   class="bg-zinc-900 text-white px-5 py-2 rounded-xl text-sm font-medium hover:bg-zinc-800 disabled:opacity-50 transition-all hover:shadow-lg active:scale-95"
                 >
@@ -146,36 +146,199 @@
             </div>
           </div>
 
-          <!-- 评论列表 (用 TransitionGroup 让新评论插入时滑动) -->
-          <transition-group name="list" tag="div" class="space-y-6 relative">
-            <div v-for="comment in comments" :key="comment.id" class="flex gap-4 group">
+          <!-- 树状评论列表 (2级铺平结构) -->
+          <transition-group name="list" tag="div" class="space-y-8 relative">
+            <div v-for="root in comments" :key="root.id" class="flex gap-4 group">
+              <!-- 一级评论头像 -->
               <img
                 :src="
-                  comment.avatarUrl ||
-                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.userId}`
+                  root.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${root.userId}`
                 "
-                class="w-8 h-8 rounded-full bg-zinc-100 object-cover mt-1 shrink-0 border border-zinc-200"
+                @click.stop="goToUserProfile(root.userId)"
+                class="w-10 h-10 rounded-full bg-zinc-100 object-cover shrink-0 border border-zinc-200 cursor-pointer hover:opacity-80 transition-opacity"
               />
-              <div class="flex-1 border-b border-zinc-100 pb-6 group-last:border-0 group-last:pb-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <span class="text-sm font-bold text-zinc-900">{{
-                    comment.username || `用户 ${comment.userId}`
-                  }}</span>
+
+              <!-- 一级评论内容主体 -->
+              <div
+                class="flex-1 border-b border-zinc-100 pb-8 group-last:border-0 group-last:pb-0 min-w-0"
+              >
+                <!-- 主评论头部与正文 -->
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span
+                    @click.stop="goToUserProfile(root.userId)"
+                    class="text-sm font-bold text-zinc-900 cursor-pointer hover:text-blue-600 transition-colors"
+                  >
+                    {{ root.username || `用户 ${root.userId}` }}
+                  </span>
                   <span class="text-xs text-zinc-400 ml-auto">{{
-                    formatTimeAgo(comment.createdAt)
+                    formatTimeAgo(root.createdAt)
                   }}</span>
                 </div>
-                <p class="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                  {{ comment.content }}
+                <p class="text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap">
+                  {{ root.content }}
                 </p>
+
+                <!-- 主评论操作栏 -->
                 <div class="flex items-center gap-4 mt-3">
                   <button
-                    class="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-900 transition-colors"
+                    @click="handleReplyClick(root)"
+                    class="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
                   >
                     <MessageSquare class="w-3.5 h-3.5" /> 回复
                   </button>
                 </div>
+
+                <!-- 针对主评论的内联回复框 -->
+                <div
+                  v-if="activeReplyId === root.id"
+                  class="mt-4 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300"
+                >
+                  <img
+                    :src="
+                      currentUser.avatarUrl ||
+                      'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
+                    "
+                    class="w-6 h-6 rounded-full object-cover shrink-0 mt-1 border border-zinc-200 bg-zinc-100"
+                  />
+                  <div class="flex-1 flex flex-col">
+                    <textarea
+                      v-focus
+                      v-model="inlineCommentContent"
+                      rows="2"
+                      class="w-full px-3 py-2 bg-white border border-zinc-200 text-sm focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none rounded-lg"
+                      :placeholder="`回复 @${root.username || '用户'}...`"
+                    ></textarea>
+                    <div class="flex justify-end mt-2 gap-2">
+                      <button
+                        @click="cancelReply"
+                        class="px-4 py-1.5 rounded-lg text-xs font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                      >
+                        取消
+                      </button>
+                      <button
+                        @click="handlePublishInlineComment(root)"
+                        :disabled="isPublishingComment || !inlineCommentContent.trim()"
+                        class="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-zinc-800 disabled:opacity-50 transition-colors flex items-center"
+                      >
+                        <span
+                          v-if="isPublishingComment"
+                          class="animate-spin w-3 h-3 border-[1.5px] border-white border-t-transparent rounded-full mr-1.5"
+                        ></span
+                        >回复
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 子评论区块 (楼中楼) -->
+                <div
+                  v-if="root.flatChildren && root.flatChildren.length > 0"
+                  class="mt-4 bg-zinc-50 rounded-xl p-4 space-y-4 border border-zinc-100"
+                >
+                  <transition-group name="list" tag="div" class="space-y-4">
+                    <div
+                      v-for="child in root.flatChildren"
+                      :key="child.id"
+                      class="flex gap-3 group/sub"
+                    >
+                      <!-- 二级评论头像 -->
+                      <img
+                        :src="
+                          child.avatarUrl ||
+                          `https://api.dicebear.com/7.x/avataaars/svg?seed=${child.userId}`
+                        "
+                        @click.stop="goToUserProfile(child.userId)"
+                        class="w-6 h-6 rounded-full bg-zinc-200 object-cover shrink-0 border border-zinc-200/50 mt-0.5 cursor-pointer hover:opacity-80 transition-opacity"
+                      />
+
+                      <!-- 二级评论主体 -->
+                      <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-1.5 mb-1">
+                          <span
+                            @click.stop="goToUserProfile(child.userId)"
+                            class="text-sm font-bold text-zinc-900 cursor-pointer hover:text-blue-600 transition-colors"
+                          >
+                            {{ child.username || `用户 ${child.userId}` }}
+                          </span>
+
+                          <!-- 回复目标高亮 (如果是直接回复层主，则不显示 @；如果是回复其他子评论，则显示 @目标) -->
+                          <template v-if="child.replyToId !== root.id">
+                            <span class="text-[11px] text-zinc-400">回复</span>
+                            <span class="text-sm font-medium text-blue-600"
+                              >@{{ getCommentUsername(child.replyToId) }}</span
+                            >
+                          </template>
+
+                          <span class="text-xs text-zinc-400 ml-auto pl-2">{{
+                            formatTimeAgo(child.createdAt)
+                          }}</span>
+                        </div>
+
+                        <p class="text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap">
+                          {{ child.content }}
+                        </p>
+
+                        <div class="flex items-center gap-4 mt-1.5">
+                          <button
+                            @click="handleReplyClick(child)"
+                            class="flex items-center gap-1 text-[11px] font-medium text-zinc-400 hover:text-zinc-900 transition-colors"
+                          >
+                            <MessageSquare class="w-3 h-3" /> 回复
+                          </button>
+                        </div>
+
+                        <!-- 针对子评论的内联回复框 -->
+                        <div
+                          v-if="activeReplyId === child.id"
+                          class="mt-3 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300"
+                        >
+                          <img
+                            :src="
+                              currentUser.avatarUrl ||
+                              'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
+                            "
+                            class="w-6 h-6 rounded-full object-cover shrink-0 mt-1 border border-zinc-200 bg-zinc-100"
+                          />
+                          <div class="flex-1 flex flex-col">
+                            <textarea
+                              v-focus
+                              v-model="inlineCommentContent"
+                              rows="2"
+                              class="w-full px-3 py-2 bg-white border border-zinc-200 text-sm focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-none rounded-lg shadow-sm"
+                              :placeholder="`回复 @${child.username || '用户'}...`"
+                            ></textarea>
+                            <div class="flex justify-end mt-2 gap-2">
+                              <button
+                                @click="cancelReply"
+                                class="px-4 py-1.5 rounded-lg text-xs font-medium text-zinc-600 bg-zinc-100 hover:bg-zinc-200 transition-colors"
+                              >
+                                取消
+                              </button>
+                              <button
+                                @click="handlePublishInlineComment(child)"
+                                :disabled="isPublishingComment || !inlineCommentContent.trim()"
+                                class="bg-zinc-900 text-white px-4 py-1.5 rounded-lg text-xs font-medium hover:bg-zinc-800 disabled:opacity-50 transition-colors flex items-center"
+                              >
+                                <span
+                                  v-if="isPublishingComment"
+                                  class="animate-spin w-3 h-3 border-[1.5px] border-white border-t-transparent rounded-full mr-1.5"
+                                ></span
+                                >回复
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </transition-group>
+                </div>
               </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-if="comments.length === 0" class="text-center py-16">
+              <MessageSquare class="w-10 h-10 text-zinc-200 mx-auto mb-3" />
+              <p class="text-sm font-medium text-zinc-500">暂时没有评论，来抢沙发吧！</p>
             </div>
           </transition-group>
         </div>
@@ -198,10 +361,14 @@
                 post.author?.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
               "
               alt="Avatar"
-              class="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover transition-transform hover:scale-105"
+              @click="goToUserProfile(post.author?.userId)"
+              class="w-14 h-14 rounded-full border-2 border-white shadow-sm object-cover transition-transform hover:scale-105 cursor-pointer"
             />
             <div>
-              <div class="text-base font-bold text-zinc-900">
+              <div
+                @click="goToUserProfile(post.author?.userId)"
+                class="text-base font-bold text-zinc-900 cursor-pointer hover:text-blue-600 transition-colors"
+              >
                 {{ post.author?.username || '匿名用户' }}
               </div>
               <div class="text-xs text-zinc-500 mt-1">ID: {{ post.author?.userId }}</div>
@@ -236,15 +403,26 @@ import {
 const route = useRoute()
 const router = useRouter()
 
+// --- 自定义指令：自动聚焦 ---
+const vFocus = {
+  mounted: (el) => el.focus(),
+}
+
 // --- 状态数据 ---
 const currentUser = ref({})
 const post = ref(null)
 const isLoading = ref(true)
 
 // 评论状态
-const comments = ref([])
+const comments = ref([]) // 用于渲染的一维根数组(其内部附带 flatChildren)
+const totalComments = ref(0) // 总评论数
+const usernameMap = ref(new Map()) // 全局 ID -> Username 映射表
 const newCommentContent = ref('')
 const isPublishingComment = ref(false)
+
+// 内联回复状态
+const activeReplyId = ref(null) // 当前展开回复框的评论 ID
+const inlineCommentContent = ref('') // 内联回复框的内容
 
 // 当前帖子ID
 const currentPostId = route.params.id
@@ -261,7 +439,7 @@ onMounted(() => {
   }
 })
 
-// [真实请求] 获取当前登录用户信息 (用于渲染发评论区的头像)
+// 获取当前登录用户信息 (用于渲染发评论区的头像)
 const fetchCurrentUser = async () => {
   try {
     const token = getToken()
@@ -276,7 +454,7 @@ const fetchCurrentUser = async () => {
   }
 }
 
-// [真实请求] GET /api/posts/{postId}
+// 获取帖子详情
 const fetchPostDetail = async (postId) => {
   isLoading.value = true
   try {
@@ -290,7 +468,6 @@ const fetchPostDetail = async (postId) => {
     if (result.code === 200) {
       post.value = result.data
 
-      // 并发拉取当前帖子的真实点赞状态
       if (token && post.value) {
         try {
           const statusRes = await fetch(`/api/interact/post/status?postId=${postId}`, {
@@ -300,12 +477,8 @@ const fetchPostDetail = async (postId) => {
           if (statusJson.code === 200) {
             post.value.isLiked = statusJson.data
           }
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) {}
       }
-    } else {
-      console.error('获取详情失败:', result.message)
     }
   } catch (error) {
     console.error('网络请求异常:', error)
@@ -314,7 +487,7 @@ const fetchPostDetail = async (postId) => {
   }
 }
 
-// [真实请求] GET /api/interact/comment/list/{postId} 获取评论列表
+// 获取并解析评论树（力扣/B站 楼中楼模式）
 const fetchComments = async (postId) => {
   try {
     const token = getToken()
@@ -323,18 +496,72 @@ const fetchComments = async (postId) => {
       headers: { Authorization: token ? `Bearer ${token}` : '' },
     })
     const result = await response.json()
+
     if (result.code === 200) {
-      comments.value = result.data || []
+      const rawTree = result.data || []
+
+      let count = 0
+      const uMap = new Map()
+
+      // 1. 递归统计总数，并建立 ID 到 Username 的映射表 (方便查找 @某人)
+      const traverse = (list) => {
+        for (const c of list) {
+          count++
+          uMap.set(c.id, c.username || `用户 ${c.userId}`)
+          if (c.children && c.children.length > 0) {
+            traverse(c.children)
+          }
+        }
+      }
+      traverse(rawTree)
+
+      totalComments.value = count
+      usernameMap.value = uMap
+
+      // 2. 将 N 级树结构转为 2 级铺平结构 (Root -> flatChildren)
+      comments.value = rawTree.map((root) => {
+        const flatChildren = []
+        // 递归抽取主评论下的所有子孙回复
+        const extractChildren = (children) => {
+          if (!children) return
+          for (const child of children) {
+            flatChildren.push(child)
+            extractChildren(child.children)
+          }
+        }
+        extractChildren(root.children)
+
+        // 子孙回复按时间升序排列 (旧的在前，新的在后)
+        flatChildren.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+
+        return { ...root, flatChildren }
+      })
     }
   } catch (error) {
     console.error('获取评论列表异常:', error)
   }
 }
 
-// [真实请求] POST /api/interact/comment/publish/{postId} 发布评论
-const handlePublishComment = async () => {
-  const content = newCommentContent.value.trim()
-  if (!content || !currentPostId) return
+// 通过映射表获取回复对象的用户名
+const getCommentUsername = (replyToId) => {
+  return usernameMap.value.get(replyToId) || '未知用户'
+}
+
+// 触发内联回复框
+const handleReplyClick = (comment) => {
+  activeReplyId.value = comment.id
+  inlineCommentContent.value = ''
+}
+
+// 取消回复
+const cancelReply = () => {
+  activeReplyId.value = null
+  inlineCommentContent.value = ''
+}
+
+// 发送评论的基础核心请求
+const executePublishComment = async (content, replyToId) => {
+  if (!content || !currentPostId) return false
 
   isPublishingComment.value = true
   try {
@@ -347,26 +574,46 @@ const handlePublishComment = async () => {
       },
       body: JSON.stringify({
         content: content,
-        replyToId: null, // 平铺基础评论，无父级
+        replyToId: replyToId,
       }),
     })
     const result = await response.json()
 
     if (result.code === 200) {
-      newCommentContent.value = '' // 清空输入框
-      await fetchComments(currentPostId) // 重新拉取评论列表
-      if (post.value) post.value.commentCount++
+      await fetchComments(currentPostId) // 重新拉取以刷新楼中楼
+      if (post.value) post.value.commentCount++ // 可选，更新前端显示
+      return true
     } else {
       alert(result.message || '发布评论失败')
+      return false
     }
   } catch (error) {
     console.error('发布评论异常:', error)
+    return false
   } finally {
     isPublishingComment.value = false
   }
 }
 
-// [真实请求] POST /api/interact/post/like/{postId} 点赞
+// 发送顶层(一级)评论
+const handlePublishTopComment = async () => {
+  const content = newCommentContent.value.trim()
+  const success = await executePublishComment(content, null)
+  if (success) {
+    newCommentContent.value = ''
+  }
+}
+
+// 发送内联(二级/子层)回复
+const handlePublishInlineComment = async (targetComment) => {
+  const content = inlineCommentContent.value.trim()
+  const success = await executePublishComment(content, targetComment.id)
+  if (success) {
+    cancelReply()
+  }
+}
+
+// 点赞
 const handleLike = async () => {
   if (!post.value) return
   const originalStatus = post.value.isLiked
@@ -398,7 +645,7 @@ const formatDate = (dateString) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-// 处理 "多久之前" 的显示方式
+// 处理 "多久之前" 的显示
 const formatTimeAgo = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -411,10 +658,15 @@ const formatTimeAgo = (dateString) => {
   return `${Math.floor(diffInSeconds / 86400)}天前`
 }
 
+// 跳转到他人主页的方法
+const goToUserProfile = (userId) => {
+  if (userId) router.push(`/user/${userId}`)
+}
+
 const goBack = () => router.back()
 const goToHome = () => router.push('/')
 
-// 跳转发送私信
+// 跳转私信
 const goToMessage = () => {
   if (!post.value || !post.value.author) return
   router.push({
@@ -429,7 +681,7 @@ const goToMessage = () => {
 </script>
 
 <style scoped>
-/* 评论列表插入时的滑入动画 */
+/* 评论列表滑入动画 */
 .list-move,
 .list-enter-active,
 .list-leave-active {

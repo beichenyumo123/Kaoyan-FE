@@ -129,6 +129,7 @@
                   />
                   {{ board.name }}
                 </div>
+                <!-- 显示动态校准后的数量 -->
                 <span
                   v-if="board.postCount > 0"
                   class="text-xs bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded-md transition-colors"
@@ -184,7 +185,6 @@
           </button>
         </div>
 
-        <!-- 🔴 使用过度动画包裹 加载骨架屏 与 帖子列表 -->
         <transition name="feed" mode="out-in">
           <!-- 帖子列表加载状态 -->
           <div v-if="isLoadingPosts" key="skeleton" class="space-y-4 w-full">
@@ -203,7 +203,7 @@
             </div>
           </div>
 
-          <!-- 帖子列表 (使用 TransitionGroup 实现交错动画) -->
+          <!-- 帖子列表 -->
           <div v-else key="post-list" class="w-full">
             <transition-group name="list" tag="div" class="space-y-4 relative">
               <article
@@ -220,11 +220,15 @@
                         'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
                       "
                       :alt="post.author?.username || '匿名用户'"
-                      class="w-8 h-8 rounded-full bg-zinc-100 object-cover"
+                      @click.stop="goToUserProfile(post.author?.userId)"
+                      class="w-8 h-8 rounded-full bg-zinc-100 object-cover cursor-pointer hover:opacity-80 transition-opacity"
                     />
-                    <span class="text-sm font-medium text-zinc-700">{{
-                      post.author?.username || '匿名用户'
-                    }}</span>
+                    <span
+                      @click.stop="goToUserProfile(post.author?.userId)"
+                      class="text-sm font-medium text-zinc-700 cursor-pointer hover:text-blue-600 transition-colors"
+                    >
+                      {{ post.author?.username || '匿名用户' }}
+                    </span>
                     <span class="text-zinc-300 text-xs">•</span>
                     <span class="text-xs text-zinc-500">{{ formatDate(post.createdAt) }}</span>
                   </div>
@@ -271,6 +275,7 @@
                     class="flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-all duration-300 hover:scale-110"
                   >
                     <MessageSquare class="w-4 h-4" />
+                    <!-- 渲染动态修正后的真实评论数 -->
                     <span>{{ post.commentCount }}</span>
                   </button>
                   <div class="flex items-center gap-1.5 text-sm">
@@ -379,6 +384,7 @@
             <li
               v-for="(user, index) in leaderboards.slice(0, 10)"
               :key="user.id || index"
+              @click="goToUserProfile(user.id || user.userId)"
               class="flex gap-3 items-center group cursor-pointer hover:bg-zinc-50 p-2 -mx-2 rounded-xl transition-all duration-200"
             >
               <span
@@ -549,7 +555,7 @@ const searchQuery = ref('')
 const unreadCount = ref(0)
 let unreadTimer = null
 
-// --- 🔴 新增打卡与排行榜状态 ---
+// --- 打卡与排行榜状态 ---
 const checkInStats = ref({
   todayChecked: false,
   continuousDays: 0,
@@ -626,12 +632,25 @@ const fetchBoards = async () => {
     if (result.code === 200) {
       const uniqueBoards = []
       const seenNames = new Set()
-      ;(result.data || []).forEach((board) => {
+
+      // 修复板块发帖数假数据：通过实际请求获取对应的真正数量
+      for (const board of result.data || []) {
         if (!seenNames.has(board.name)) {
           seenNames.add(board.name)
           uniqueBoards.push(board)
+
+          // 利用帖子分页接口，拉取第1页第1条数据，借机拿到 total 属性
+          try {
+            const countRes = await fetch(`/api/posts/board/${board.id}?pageNum=1&pageSize=1`)
+            const countJson = await countRes.json()
+            if (countJson.code === 200 && countJson.data) {
+              // 兼容 total 或者 totalElements 的字段命名
+              board.postCount =
+                countJson.data.total ?? countJson.data.totalElements ?? board.postCount
+            }
+          } catch (e) {}
         }
-      })
+      }
       boards.value = uniqueBoards
     }
   } catch (error) {
@@ -657,17 +676,29 @@ const fetchPosts = async (isLoadMore = false) => {
       const newPosts = result.data.list || []
       const token = getToken()
 
-      // 并发拉取每个帖子的真实点赞状态
-      if (token && newPosts.length > 0) {
+      // 并发拉取附加状态：点赞状态及真实评论数
+      if (newPosts.length > 0) {
         await Promise.all(
           newPosts.map(async (post) => {
+            // 获取用户对该帖子的点赞状态
+            if (token) {
+              try {
+                const statusRes = await fetch(`/api/interact/post/status?postId=${post.id}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                })
+                const statusJson = await statusRes.json()
+                if (statusJson.code === 200) {
+                  post.isLiked = statusJson.data
+                }
+              } catch (e) {}
+            }
+
+            // 修复帖子评论数 0 问题：后端没做更新，前端强制查该贴的全部评论拿 length
             try {
-              const statusRes = await fetch(`/api/interact/post/status?postId=${post.id}`, {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-              const statusJson = await statusRes.json()
-              if (statusJson.code === 200) {
-                post.isLiked = statusJson.data
+              const commentRes = await fetch(`/api/interact/comment/list/${post.id}`)
+              const commentJson = await commentRes.json()
+              if (commentJson.code === 200) {
+                post.commentCount = (commentJson.data || []).length
               }
             } catch (e) {}
           }),
@@ -685,7 +716,7 @@ const fetchPosts = async (isLoadMore = false) => {
   }
 }
 
-// 🔴 获取当前用户打卡统计
+// 获取当前用户打卡统计
 const fetchCheckInStats = async () => {
   try {
     const token = getToken()
@@ -702,7 +733,7 @@ const fetchCheckInStats = async () => {
   }
 }
 
-// 🔴 获取积分总榜
+// 获取积分总榜
 const fetchLeaderboards = async () => {
   try {
     const response = await fetch('/api/activity/rank/total')
@@ -773,7 +804,7 @@ const handleLike = async (post) => {
   }
 }
 
-// 🔴 触发打开打卡弹窗
+// 触发打开打卡弹窗
 const openCheckInModal = () => {
   if (checkInStats.value.todayChecked) return
   checkInForm.studyHours = 8
@@ -785,7 +816,7 @@ const closeCheckInModal = () => {
   showCheckInModal.value = false
 }
 
-// 🔴 提交打卡记录
+// 提交打卡记录
 const submitCheckIn = async () => {
   if (isSubmittingCheckIn.value) return
   isSubmittingCheckIn.value = true
@@ -809,8 +840,6 @@ const submitCheckIn = async () => {
       // 打卡成功，使用后端返回的最新数据覆盖本地状态
       checkInStats.value = result.data
       closeCheckInModal()
-
-      // 悄悄刷新一次排行榜，没准你刚打卡就上榜了呢！
       fetchLeaderboards()
     } else {
       alert(result.message || '打卡失败')
@@ -820,6 +849,11 @@ const submitCheckIn = async () => {
   } finally {
     isSubmittingCheckIn.value = false
   }
+}
+
+// 跳转到他人主页的方法
+const goToUserProfile = (userId) => {
+  if (userId) router.push(`/user/${userId}`)
 }
 
 const goToPostDetail = (postId) => router.push(`/post/${postId}`)

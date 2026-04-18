@@ -121,11 +121,15 @@
                   'https://api.dicebear.com/7.x/avataaars/svg?seed=fallback'
                 "
                 :alt="post.author?.username || '匿名用户'"
-                class="w-6 h-6 rounded-full bg-zinc-100 object-cover border border-zinc-200"
+                @click.stop="goToUserProfile(post.author?.userId)"
+                class="w-6 h-6 rounded-full bg-zinc-100 object-cover border border-zinc-200 cursor-pointer hover:opacity-80 transition-opacity"
               />
-              <span class="text-sm font-medium text-zinc-700">{{
-                post.author?.username || '匿名用户'
-              }}</span>
+              <span
+                @click.stop="goToUserProfile(post.author?.userId)"
+                class="text-sm font-medium text-zinc-700 cursor-pointer hover:text-blue-600 transition-colors"
+              >
+                {{ post.author?.username || '匿名用户' }}
+              </span>
               <span class="text-zinc-300 text-xs">•</span>
               <span class="text-xs text-zinc-500">{{ formatDate(post.createdAt) }}</span>
             </div>
@@ -172,6 +176,7 @@
             </button>
             <button class="flex items-center gap-1.5 text-sm hover:text-zinc-900 transition-colors">
               <MessageSquare class="w-4 h-4" />
+              <!-- 渲染动态修正后的真实评论数 -->
               <span>{{ post.commentCount || 0 }}</span>
             </button>
             <div class="flex items-center gap-1.5 text-sm">
@@ -200,7 +205,8 @@
         <div
           v-for="user in users"
           :key="user.id"
-          class="bg-white border border-zinc-200 rounded-xl p-5 flex items-center justify-between group hover:border-zinc-300 transition-colors shadow-sm"
+          @click="goToUserProfile(user.id)"
+          class="bg-white border border-zinc-200 rounded-xl p-5 flex items-center justify-between group hover:border-zinc-300 transition-colors shadow-sm cursor-pointer"
         >
           <div class="flex items-center gap-4 min-w-0">
             <img
@@ -221,7 +227,7 @@
 
           <!-- 发私信按钮 -->
           <button
-            @click="goToMessage(user)"
+            @click.stop="goToMessage(user)"
             class="shrink-0 p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
             title="发送私信"
           >
@@ -323,8 +329,39 @@ const fetchSearchResults = async (keyword) => {
     const result = await response.json()
 
     if (result.code === 200) {
-      posts.value = result.data?.posts || []
+      const fetchedPosts = result.data?.posts || []
       users.value = result.data?.users || []
+
+      // 🔴 动态补全点赞和评论数
+      if (fetchedPosts.length > 0) {
+        await Promise.all(
+          fetchedPosts.map(async (post) => {
+            // 获取点赞状态
+            if (token) {
+              try {
+                const statusRes = await fetch(`/api/interact/post/status?postId=${post.id}`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                })
+                const statusJson = await statusRes.json()
+                if (statusJson.code === 200) {
+                  post.isLiked = statusJson.data
+                }
+              } catch (e) {}
+            }
+
+            // 获取真实评论长度
+            try {
+              const commentRes = await fetch(`/api/interact/comment/list/${post.id}`)
+              const commentJson = await commentRes.json()
+              if (commentJson.code === 200) {
+                post.commentCount = (commentJson.data || []).length
+              }
+            } catch (e) {}
+          }),
+        )
+      }
+
+      posts.value = fetchedPosts
 
       // 如果没有帖子但有用户，自动切换到用户 Tab
       if (posts.value.length === 0 && users.value.length > 0) {
@@ -377,6 +414,11 @@ const handleLike = async (post) => {
 const goBack = () => router.back()
 const goToHome = () => router.push('/')
 const goToPostDetail = (postId) => router.push(`/post/${postId}`)
+
+// 跳转到他人主页的方法
+const goToUserProfile = (userId) => {
+  if (userId) router.push(`/user/${userId}`)
+}
 
 // 跳转到私信，并把对方信息带在 query 里，方便 MessageCenter 直接发起聊天
 const goToMessage = (user) => {
