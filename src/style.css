@@ -1,9 +1,8 @@
+@import 'md-editor-v3/lib/style.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* md-editor-v3 样式 */
-@import 'md-editor-v3/lib/style.css';
 
 @layer utilities {
   /* ==================================================
@@ -118,4 +117,23 @@
   --md-color-text: #18181b;
   --md-color-text-secondary: #71717a;
   --md-color-text-disabled: #a1a1aa;
+  height: 100%;
+}
+
+/* 恢复列表样式 — Tailwind preflight 会全局清除 ul/ol 的 list-style */
+.md-editor-preview ul,
+.md-editor-preview ol,
+.post-content ul,
+.post-content ol,
+.comment-content ul,
+.comment-content ol {
+  list-style: revert;
+  padding-left: 1.5rem;
+  margin: 0.75em 0;
+}
+
+.md-editor-preview li,
+.post-content li,
+.comment-content li {
+  margin: 0.3em 0;
 }
