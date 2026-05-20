@@ -38,6 +38,14 @@
         <!-- 右侧用户操作 -->
         <div class="flex items-center gap-5">
           <button
+            @click="goToGroupList"
+            class="text-zinc-500 hover:text-zinc-900 transition-all duration-300 relative hover:-translate-y-0.5"
+            title="群聊"
+          >
+            <Users class="w-5 h-5" />
+          </button>
+
+          <button
             @click="goToMessageCenter"
             class="text-zinc-500 hover:text-zinc-900 transition-all duration-300 relative hover:-translate-y-0.5"
           >
@@ -546,6 +554,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
   Search,
   Bell,
+  Users,
   MessageSquare,
   ThumbsUp,
   Eye,
@@ -924,6 +933,7 @@ const goToPostDetail = (postId) => router.push(`/post/${postId}`)
 const goToUserCenter = () => router.push('/user_center')
 const goToCreatePost = () => router.push('/create_post')
 const goToMessageCenter = () => router.push('/message')
+const goToGroupList = () => router.push('/groups')
 </script>
 
 <style scoped>

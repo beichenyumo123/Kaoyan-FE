@@ -1,9 +1,10 @@
-<script setup lang="ts">
+<script setup>
 import { RouterView } from 'vue-router'
+import AppToast from '@/components/AppToast.vue'
 </script>
 
 <template>
-  <!-- 路由出口：包裹 Transition 实现页面切换动画 -->
+  <AppToast />
   <router-view v-slot="{ Component, route }">
     <transition name="page" mode="out-in">
       <component :is="Component" :key="route.path" />

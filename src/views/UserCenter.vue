@@ -47,6 +47,13 @@
               <span class="text-xs font-medium bg-zinc-100 text-zinc-600 px-2.5 py-1 rounded-md">
                 {{ user.role === 'USER' ? '普通用户' : '管理员' }}
               </span>
+              <button
+                v-if="user.role === 'ADMIN'"
+                @click="goToAdminDashboard"
+                class="text-xs font-medium bg-zinc-900 text-white px-2.5 py-1 rounded-md hover:bg-zinc-800 transition-colors flex items-center gap-1"
+              >
+                <Shield class="w-3 h-3" /> 管理后台
+              </button>
             </div>
 
             <!-- 数据统计网格 (接入真实数据) -->
@@ -730,6 +737,7 @@ const handleSave = async () => {
 // === 跳转与工具函数 ===
 const goBack = () => router.back()
 const goToPostDetail = (postId) => router.push(`/post/${postId}`)
+const goToAdminDashboard = () => router.push('/admin/dashboard')
 
 const formatDate = (dateString) => {
   if (!dateString) return ''

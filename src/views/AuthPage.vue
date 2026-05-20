@@ -179,6 +179,47 @@
                 </p>
               </div>
 
+              <!-- 图形验证码 -->
+              <div class="group">
+                <label
+                  class="block text-sm font-medium text-zinc-700 mb-1.5 transition-colors group-hover:text-zinc-900"
+                  >验证码</label
+                >
+                <div class="flex gap-3">
+                  <input
+                    v-model="captchaCode"
+                    type="text"
+                    maxlength="4"
+                    class="flex-1 px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm focus:-translate-y-0.5 focus:shadow-md"
+                    placeholder="请输入验证码"
+                    :disabled="isLoading"
+                    autocomplete="off"
+                  />
+                  <img
+                    v-if="captchaBase64"
+                    :src="captchaBase64"
+                    alt="验证码"
+                    @click="fetchCaptcha"
+                    class="h-[42px] w-[140px] border border-zinc-200 rounded-lg cursor-pointer hover:border-zinc-400 transition-colors bg-white object-contain shrink-0"
+                    title="点击刷新验证码"
+                  />
+                  <button
+                    v-else
+                    type="button"
+                    @click="fetchCaptcha"
+                    class="h-[42px] w-[120px] border border-zinc-200 rounded-lg flex items-center justify-center bg-zinc-100 animate-pulse shrink-0"
+                  >
+                    <span class="text-xs text-zinc-400">加载中</span>
+                  </button>
+                </div>
+                <p
+                  v-if="captchaError"
+                  class="mt-1.5 text-xs text-red-500 transform transition-all"
+                >
+                  {{ captchaError }}
+                </p>
+              </div>
+
               <!-- 2. 记住我 & 忘记密码 -->
               <div class="flex items-center justify-between mt-2 mb-4">
                 <label class="flex items-center gap-2 cursor-pointer group/cb">
@@ -436,7 +477,7 @@
 
 <script setup>
 import router from '@/router'
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 
 // --- 状态管理 ---
 const isLogin = ref(true)
@@ -475,6 +516,12 @@ const registerErrors = reactive({
   confirmPassword: '',
 })
 
+// 验证码状态
+const captchaCode = ref('')
+const captchaUuid = ref('')
+const captchaBase64 = ref('')
+const captchaError = ref('')
+
 // --- 动画钩子 (动态高度平滑缩放核心逻辑) ---
 // 在即将进入的表单挂载瞬间，获取新高度，赋给父容器让其过渡
 const onEnter = (el) => {
@@ -501,6 +548,28 @@ const onLeave = (el) => {
 
 // --- 方法 ---
 
+// 获取图形验证码
+const fetchCaptcha = async () => {
+  try {
+    captchaBase64.value = ''
+    captchaCode.value = ''
+    captchaError.value = ''
+    const response = await fetch('/api/auth/captcha')
+    const result = await response.json()
+    if (result.code === 200 && result.data) {
+      captchaUuid.value = result.data.uuid
+      captchaBase64.value = result.data.base64
+    }
+  } catch (error) {
+    console.error('获取验证码失败:', error)
+  }
+}
+
+// 初始化
+onMounted(() => {
+  fetchCaptcha()
+})
+
 // 切换 Tab 时的逻辑
 const switchTab = (toLogin) => {
   if (isLoading.value || isLogin.value === toLogin) return
@@ -511,6 +580,7 @@ const switchTab = (toLogin) => {
 const clearErrors = () => {
   Object.keys(loginErrors).forEach((k) => (loginErrors[k] = ''))
   Object.keys(registerErrors).forEach((k) => (registerErrors[k] = ''))
+  captchaError.value = ''
 }
 
 const isValidEmail = (email) => {
@@ -531,6 +601,10 @@ const handleLogin = async () => {
     loginErrors.password = '密码不能为空'
     hasError = true
   }
+  if (!captchaCode.value.trim()) {
+    captchaError.value = '请输入验证码'
+    hasError = true
+  }
 
   if (hasError) return
 
@@ -539,8 +613,8 @@ const handleLogin = async () => {
     const requestPayload = {
       account: loginForm.account,
       password: loginForm.password,
-      // 如果后端支持，也可以把 rememberMe 传过去
-      // rememberMe: loginForm.rememberMe
+      captchaCode: captchaCode.value,
+      captchaUuid: captchaUuid.value,
     }
 
     console.log('发送 POST /api/auth/login:', requestPayload)
@@ -553,19 +627,18 @@ const handleLogin = async () => {
     const result = await response.json()
 
     if (result.code === 200) {
-      // 存储 Token 和 用户信息 (ResultLoginVO.data)
       localStorage.setItem('token', result.data.token)
-      // TODO: 跳转主页 router.push('/')
-      //router.push('/user_center')
       router.push('/community')
       console.log('登录成功！')
     } else {
-      // 业务失败：显示后端返回的错误消息
       loginErrors.account = result.message || '登录失败，请检查账号和密码'
+      // 登录失败自动刷新验证码
+      fetchCaptcha()
     }
   } catch (error) {
     console.error('登录异常:', error)
     loginErrors.account = '网络请求异常，请稍后重试'
+    fetchCaptcha()
   } finally {
     isLoading.value = false
   }
@@ -613,8 +686,13 @@ const handleRegister = async () => {
     const result = await response.json()
 
     if (result.code === 200) {
-      // 注册成功后切换回登录
-      console.log('注册成功！')
+      // 注册成功：触发 toast 提示 + 自动填入账号 + 切换登录 Tab
+      window.dispatchEvent(
+        new CustomEvent('app-toast', {
+          detail: { type: 'info', message: '注册成功，请登录' },
+        }),
+      )
+      loginForm.account = registerForm.email
       switchTab(true)
     } else {
       registerErrors.username = result.message || '注册失败，请重试'
