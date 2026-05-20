@@ -101,7 +101,7 @@
                   v-model="loginForm.account"
                   type="text"
                   class="block w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm focus:-translate-y-0.5 focus:shadow-md"
-                  placeholder="邮箱 / 用户名 / 手机号"
+                  placeholder="邮箱 / 手机号"
                   :disabled="isLoading"
                 />
                 <p
@@ -212,10 +212,7 @@
                     <span class="text-xs text-zinc-400">加载中</span>
                   </button>
                 </div>
-                <p
-                  v-if="captchaError"
-                  class="mt-1.5 text-xs text-red-500 transform transition-all"
-                >
+                <p v-if="captchaError" class="mt-1.5 text-xs text-red-500 transform transition-all">
                   {{ captchaError }}
                 </p>
               </div>
