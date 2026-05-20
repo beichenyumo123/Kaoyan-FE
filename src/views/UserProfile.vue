@@ -191,7 +191,7 @@
             >
               <h3 class="text-base font-bold text-zinc-900 mb-2 line-clamp-1">{{ post.title }}</h3>
               <p class="text-sm text-zinc-500 line-clamp-2 mb-4 leading-relaxed">
-                {{ post.content }}
+                {{ stripHtml(post.content) }}
               </p>
 
               <!-- 标签区域 -->
@@ -295,6 +295,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { stripHtml } from '@/utils/markdown'
 import {
   ArrowLeft,
   Share2,

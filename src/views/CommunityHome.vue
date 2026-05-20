@@ -281,7 +281,7 @@
                   {{ post.title }}
                 </h3>
                 <p class="text-sm text-zinc-600 line-clamp-2 leading-relaxed mb-4">
-                  {{ post.content }}
+                  {{ stripHtml(post.content) }}
                 </p>
 
                 <div class="flex flex-wrap gap-2 mb-4">
@@ -598,6 +598,7 @@ import {
   Bookmark,
 } from 'lucide-vue-next'
 import router from '@/router'
+import { stripHtml } from '@/utils/markdown'
 
 // --- 基础状态数据 ---
 const currentUser = ref({})

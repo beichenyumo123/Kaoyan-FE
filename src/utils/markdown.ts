@@ -28,3 +28,9 @@ export function renderMarkdown(content) {
   if (!content) return ''
   return md.render(content)
 }
+
+/** 剥离 HTML 标签，取纯文本（用于帖子摘要等场景） */
+export function stripHtml(html) {
+  if (!html) return ''
+  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
+}

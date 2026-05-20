@@ -186,12 +186,37 @@
               </div>
 
               <div class="group">
-                <label class="block text-sm font-medium text-zinc-700 mb-1.5">头像 URL</label>
-                <input
-                  v-model="editForm.avatarUrl"
-                  type="text"
-                  placeholder="https://..."
-                  class="block w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all"
+                <label class="block text-sm font-medium text-zinc-700 mb-1.5">头像</label>
+                <div class="flex gap-2">
+                  <input
+                    v-model="editForm.avatarUrl"
+                    type="text"
+                    placeholder="输入头像 URL 或点击上传"
+                    class="flex-1 px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all"
+                  />
+                  <button
+                    type="button"
+                    @click="triggerAvatarUpload"
+                    :disabled="isUploadingAvatar"
+                    class="shrink-0 px-4 py-2.5 text-sm font-medium bg-white border border-zinc-200 text-zinc-700 rounded-lg hover:bg-zinc-50 transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <span v-if="isUploadingAvatar" class="animate-spin w-4 h-4 border-2 border-zinc-400 border-t-zinc-900 rounded-full"></span>
+                    <Upload v-else class="w-4 h-4" />
+                    {{ isUploadingAvatar ? '上传中' : '上传' }}
+                  </button>
+                  <input
+                    ref="avatarFileInput"
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    class="hidden"
+                    @change="handleAvatarFileChange"
+                  />
+                </div>
+                <img
+                  v-if="editForm.avatarUrl"
+                  :src="editForm.avatarUrl"
+                  class="mt-2 w-16 h-16 rounded-full object-cover border border-zinc-200"
+                  @error="$event.target.style.display = 'none'"
                 />
               </div>
 
@@ -270,7 +295,7 @@
                   {{ post.title }}
                 </h3>
                 <p class="text-sm text-zinc-500 line-clamp-2 mb-4 leading-relaxed">
-                  {{ post.content }}
+                  {{ stripHtml(post.content) }}
                 </p>
 
                 <!-- 标签区域 -->
@@ -389,7 +414,7 @@
                   {{ post.title }}
                 </h3>
                 <p class="text-sm text-zinc-500 line-clamp-2 mb-4 leading-relaxed">
-                  {{ post.content }}
+                  {{ stripHtml(post.content) }}
                 </p>
 
                 <!-- 标签区域 -->
@@ -513,8 +538,10 @@ import {
   Clock,
   ThumbsUp,
   Ghost,
+  Upload,
 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
+import { stripHtml } from '@/utils/markdown'
 
 const router = useRouter()
 
@@ -549,6 +576,43 @@ const editForm = reactive({
   targetMajor: '',
   phone: '',
 })
+
+// --- 头像上传 ---
+const avatarFileInput = ref(null)
+const isUploadingAvatar = ref(false)
+
+const triggerAvatarUpload = () => {
+  avatarFileInput.value?.click()
+}
+
+const handleAvatarFileChange = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  isUploadingAvatar.value = true
+  try {
+    const token = getToken()
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/upload/image', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    const result = await res.json()
+    if (result.code === 200 && result.data?.url) {
+      editForm.avatarUrl = result.data.url
+    } else {
+      alert(result.message || '头像上传失败')
+    }
+  } catch (e) {
+    console.error('头像上传异常:', e)
+    alert('头像上传失败，请稍后重试')
+  } finally {
+    isUploadingAvatar.value = false
+    // 清空 input 以便重复选择同一个文件
+    if (avatarFileInput.value) avatarFileInput.value.value = ''
+  }
+}
 
 // --- 辅助方法：获取 Token ---
 const getToken = () => localStorage.getItem('token')

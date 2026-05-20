@@ -65,9 +65,9 @@
           theme="light"
           language="zh-CN"
           :preview="true"
-          :no-upload-img="true"
           :footers="[]"
           :toolbars="toolbars"
+          :onUploadImg="handleUploadImage"
           preview-theme="github"
           placeholder="分享你的考研经验、提问或分享资料...&#10;&#10;支持 Markdown 语法：&#10;- **加粗** `代码`&#10;- # 标题&#10;- [链接](url) ![图片](url)"
         />
@@ -114,10 +114,11 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { X, Send } from 'lucide-vue-next'
 import { MdEditor } from 'md-editor-v3'
+import { renderMarkdown } from '@/utils/markdown'
 
 const router = useRouter()
 
-// Markdown 编辑器工具栏（全图标按钮，不含下拉菜单和上传功能）
+// Markdown 编辑器工具栏
 const toolbars = [
   'bold',
   'italic',
@@ -129,6 +130,8 @@ const toolbars = [
   'quote',
   'codeRow',
   'code',
+  '|',
+  'image',
   '|',
   'preview',
   'fullscreen',
@@ -182,6 +185,37 @@ const fetchBoards = async () => {
   }
 }
 
+// 图片上传回调（md-editor-v3 的 onUploadImg）
+const handleUploadImage = async (files, callback) => {
+  const token = getToken()
+  if (!token) {
+    alert('请先登录后再上传图片')
+    return
+  }
+  const urls = []
+  for (const file of files) {
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/upload/image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      })
+      const result = await res.json()
+      if (result.code === 200 && result.data?.url) {
+        urls.push(result.data.url)
+      } else {
+        alert(result.message || '图片上传失败')
+      }
+    } catch (e) {
+      console.error('图片上传异常:', e)
+      alert('图片上传失败，请稍后重试')
+    }
+  }
+  if (urls.length > 0) callback(urls)
+}
+
 // 标签操作
 const addTag = () => {
   const newTag = tagInput.value.trim()
@@ -214,9 +248,8 @@ const handlePublish = async () => {
       },
       body: JSON.stringify({
         ...postForm,
-        // 防止纯空格标题和内容
         title: postForm.title.trim(),
-        content: postForm.content.trim(),
+        content: renderMarkdown(postForm.content.trim()),
       }),
     })
 
