@@ -79,10 +79,9 @@
           </h1>
 
           <div
-            class="post-content text-zinc-700 leading-relaxed text-base whitespace-pre-wrap mb-8"
-          >
-            {{ post.content }}
-          </div>
+            class="post-content prose-zinc mb-8"
+            v-html="renderMarkdown(post.content)"
+          ></div>
 
           <div class="flex items-center justify-between pt-6 border-t border-zinc-100">
             <!-- 底部操作按钮组合区 -->
@@ -202,11 +201,10 @@
                     formatTimeAgo(root.createdAt)
                   }}</span>
                 </div>
-                <p
-                  class="comment-content text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap"
-                >
-                  {{ root.content }}
-                </p>
+                <div
+                  class="comment-content prose-zinc"
+                  v-html="renderMarkdown(root.content)"
+                ></div>
 
                 <!-- 主评论操作栏 -->
                 <div class="flex items-center gap-4 mt-3">
@@ -304,11 +302,10 @@
                           }}</span>
                         </div>
 
-                        <p
-                          class="comment-content text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap"
-                        >
-                          {{ child.content }}
-                        </p>
+                        <div
+                          class="comment-content prose-zinc"
+                          v-html="renderMarkdown(child.content)"
+                        ></div>
 
                         <div class="flex items-center gap-4 mt-1.5">
                           <button
@@ -431,6 +428,7 @@ import {
   Eye,
   UserPlus,
 } from 'lucide-vue-next'
+import { renderMarkdown } from '@/utils/markdown'
 
 const route = useRoute()
 const router = useRouter()
@@ -858,10 +856,180 @@ const goToMessage = () => {
 }
 
 /* ==================================================
- * 处理全局/正文图片渲染悬浮放大效果
+ * Markdown 渲染样式（帖子正文 + 评论区）
  * ================================================== */
+:deep(.post-content),
+:deep(.comment-content) {
+  color: #3f3f46;
+  line-height: 1.8;
+  font-size: 0.95rem;
+  word-break: break-word;
+}
+
+:deep(.post-content h1),
+:deep(.comment-content h1) {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #18181b;
+  margin: 1.5em 0 0.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+:deep(.post-content h2),
+:deep(.comment-content h2) {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #18181b;
+  margin: 1.3em 0 0.4em;
+}
+
+:deep(.post-content h3),
+:deep(.comment-content h3) {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #18181b;
+  margin: 1.1em 0 0.3em;
+}
+
+:deep(.post-content h4),
+:deep(.post-content h5),
+:deep(.post-content h6),
+:deep(.comment-content h4),
+:deep(.comment-content h5),
+:deep(.comment-content h6) {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #27272a;
+  margin: 1em 0 0.25em;
+}
+
+:deep(.post-content p),
+:deep(.comment-content p) {
+  margin: 0.75em 0;
+}
+
+:deep(.post-content a),
+:deep(.comment-content a) {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+:deep(.post-content a:hover),
+:deep(.comment-content a:hover) {
+  color: #1d4ed8;
+}
+
+:deep(.post-content blockquote),
+:deep(.comment-content blockquote) {
+  border-left: 4px solid #d4d4d8;
+  background: #fafafa;
+  padding: 0.75rem 1rem;
+  margin: 1em 0;
+  color: #52525b;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+:deep(.post-content blockquote p),
+:deep(.comment-content blockquote p) {
+  margin: 0;
+}
+
+:deep(.post-content code),
+:deep(.comment-content code) {
+  background: #f4f4f5;
+  color: #dc2626;
+  padding: 0.15em 0.4em;
+  border-radius: 0.25rem;
+  font-size: 0.875em;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+:deep(.post-content pre),
+:deep(.comment-content pre) {
+  background: #18181b;
+  color: #fafafa;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+:deep(.post-content pre code),
+:deep(.comment-content pre code) {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+
+:deep(.post-content ul),
+:deep(.comment-content ul) {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin: 0.75em 0;
+}
+:deep(.post-content ol),
+:deep(.comment-content ol) {
+  list-style: decimal;
+  padding-left: 1.5rem;
+  margin: 0.75em 0;
+}
+:deep(.post-content li),
+:deep(.comment-content li) {
+  margin: 0.3em 0;
+}
+
+:deep(.post-content table),
+:deep(.comment-content table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  font-size: 0.9rem;
+}
+:deep(.post-content th),
+:deep(.comment-content th) {
+  background: #f4f4f5;
+  font-weight: 600;
+  color: #18181b;
+  border: 1px solid #d4d4d8;
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+}
+:deep(.post-content td),
+:deep(.comment-content td) {
+  border: 1px solid #e4e4e7;
+  padding: 0.5rem 0.75rem;
+}
+:deep(.post-content tr:nth-child(even) td),
+:deep(.comment-content tr:nth-child(even) td) {
+  background: #fafafa;
+}
+
 :deep(.post-content img),
 :deep(.comment-content img) {
-  @apply cursor-zoom-in rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300;
+  max-width: 100%;
+  border-radius: 0.75rem;
+  cursor: zoom-in;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 0.75em 0;
+  transition: box-shadow 0.3s;
+}
+:deep(.post-content img:hover),
+:deep(.comment-content img:hover) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+:deep(.post-content hr),
+:deep(.comment-content hr) {
+  border: none;
+  border-top: 1px solid #e4e4e7;
+  margin: 1.5em 0;
+}
+
+:deep(.post-content strong),
+:deep(.comment-content strong) {
+  font-weight: 600;
+  color: #18181b;
 }
 </style>

@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* md-editor-v3 样式 */
+@import 'md-editor-v3/lib/style.css';
+
 @layer utilities {
   /* ==================================================
    * 基础工具类 & 已有动画
@@ -101,4 +104,18 @@
 .hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* md-editor-v3 主题色覆盖 — 对齐 zinc 色系 */
+.md-editor {
+  --md-color-primary: #18181b;
+  --md-color-primary-hover: #27272a;
+  --md-color-primary-pressed: #09090b;
+  --md-color-primary-disabled: #a1a1aa;
+  --md-color-bg: #fafafa;
+  --md-color-bg-darker: #f4f4f5;
+  --md-color-border: #e4e4e7;
+  --md-color-text: #18181b;
+  --md-color-text-secondary: #71717a;
+  --md-color-text-disabled: #a1a1aa;
 }

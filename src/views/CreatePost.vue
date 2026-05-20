@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen bg-white font-sans text-zinc-900 selection:bg-zinc-200 flex flex-col">
+  <div class="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 flex flex-col">
     <!-- 顶部导航栏 (Header) -->
     <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200">
-      <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <button
             @click="goBack"
@@ -28,9 +28,9 @@
     </header>
 
     <!-- 主体编辑区 -->
-    <main class="flex-1 max-w-4xl mx-auto px-4 py-8 w-full flex flex-col gap-6">
+    <main class="flex-1 max-w-6xl mx-auto px-4 py-6 w-full flex flex-col gap-5">
       <!-- 选择板块 -->
-      <div class="flex items-center gap-3 overflow-x-auto pb-2 hide-scrollbar">
+      <div class="flex items-center gap-3 overflow-x-auto pb-1 hide-scrollbar">
         <span class="text-sm font-medium text-zinc-500 whitespace-nowrap">发布到：</span>
         <button
           v-for="board in boards"
@@ -55,12 +55,23 @@
         class="w-full text-2xl sm:text-3xl font-bold text-zinc-900 placeholder-zinc-300 border-none focus:ring-0 px-0 bg-transparent"
       />
 
-      <!-- 正文输入 -->
-      <textarea
-        v-model="postForm.content"
-        placeholder="分享你的考研经验、提问或分享资料... (支持多段落)"
-        class="w-full flex-1 min-h-[300px] text-base sm:text-lg text-zinc-700 leading-relaxed placeholder-zinc-400 border-none focus:ring-0 px-0 bg-transparent resize-none"
-      ></textarea>
+      <!-- 正文输入 — Markdown 编辑器（分屏模式） -->
+      <div
+        class="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm"
+        style="height: calc(100vh - 300px); min-height: 500px;"
+      >
+        <MdEditor
+          v-model="postForm.content"
+          theme="light"
+          language="zh-CN"
+          :preview="true"
+          :no-upload-img="true"
+          :footers="[]"
+          :toolbars="toolbars"
+          preview-theme="github"
+          placeholder="分享你的考研经验、提问或分享资料...&#10;&#10;支持 Markdown 语法：&#10;- **加粗** `代码`&#10;- # 标题&#10;- [链接](url) ![图片](url)"
+        />
+      </div>
 
       <!-- 标签输入区 -->
       <div class="border-t border-zinc-100 pt-6 mt-auto">
@@ -102,8 +113,26 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { X, Send } from 'lucide-vue-next'
+import { MdEditor } from 'md-editor-v3'
 
 const router = useRouter()
+
+// Markdown 编辑器工具栏（全图标按钮，不含下拉菜单和上传功能）
+const toolbars = [
+  'bold',
+  'italic',
+  'strikeThrough',
+  '|',
+  'unorderedList',
+  'orderedList',
+  '|',
+  'quote',
+  'codeRow',
+  'code',
+  '|',
+  'preview',
+  'fullscreen',
+]
 
 // --- 状态数据 ---
 const boards = ref([])
@@ -225,6 +254,8 @@ textarea:focus {
   outline: none;
   box-shadow: none;
 }
+
+/* md-editor-v3 需父级显式高度才能正确展示分屏，由 inline style 提供 */
 
 /* 标签平滑过渡动画 */
 .tag-enter-active,
