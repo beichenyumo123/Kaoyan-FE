@@ -102,10 +102,28 @@
             </h2>
             <nav class="space-y-1">
               <button
+                @click="switchToHot"
+                :class="[
+                  'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border',
+                  showHotPosts
+                    ? 'bg-white border-zinc-200 border-l-4 border-l-zinc-900 shadow-sm text-zinc-900 font-medium translate-x-1'
+                    : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1',
+                ]"
+              >
+                <div class="flex items-center gap-3">
+                  <Flame
+                    class="w-4 h-4 transition-colors"
+                    :class="showHotPosts ? 'text-zinc-900' : 'text-zinc-400'"
+                  />
+                  热门推荐
+                </div>
+              </button>
+
+              <button
                 @click="switchBoard(0)"
                 :class="[
                   'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border',
-                  activeBoardId === 0
+                  activeBoardId === 0 && !showHotPosts
                     ? 'bg-white border-zinc-200 border-l-4 border-l-zinc-900 shadow-sm text-zinc-900 font-medium translate-x-1'
                     : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1',
                 ]"
@@ -125,7 +143,7 @@
                 @click="switchBoard(board.id)"
                 :class="[
                   'w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border',
-                  activeBoardId === board.id
+                  activeBoardId === board.id && !showHotPosts
                     ? 'bg-white border-zinc-200 border-l-4 border-l-zinc-900 shadow-sm text-zinc-900 font-medium translate-x-1'
                     : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1',
                 ]"
@@ -168,10 +186,21 @@
         <!-- 移动端/平板 分类栏 -->
         <div class="flex lg:hidden overflow-x-auto pb-2 gap-2 hide-scrollbar">
           <button
+            @click="switchToHot"
+            :class="[
+              'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-all duration-300 active:scale-95 flex items-center gap-1.5',
+              showHotPosts
+                ? 'bg-zinc-900 text-white border-zinc-900 shadow-md'
+                : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
+            ]"
+          >
+            <Flame class="w-3.5 h-3.5" /> 热门
+          </button>
+          <button
             @click="switchBoard(0)"
             :class="[
               'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-all duration-300 active:scale-95',
-              activeBoardId === 0
+              activeBoardId === 0 && !showHotPosts
                 ? 'bg-zinc-900 text-white border-zinc-900 shadow-md'
                 : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
             ]"
@@ -184,7 +213,7 @@
             @click="switchBoard(board.id)"
             :class="[
               'whitespace-nowrap px-4 py-2 text-sm rounded-full border transition-all duration-300 active:scale-95',
-              activeBoardId === board.id
+              activeBoardId === board.id && !showHotPosts
                 ? 'bg-zinc-900 text-white border-zinc-900 shadow-md'
                 : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50',
             ]"
@@ -575,6 +604,7 @@ const currentUser = ref({})
 const boards = ref([])
 const posts = ref([])
 const activeBoardId = ref(0)
+const showHotPosts = ref(false)
 const isLoadingPosts = ref(false)
 
 const pageNum = ref(1)
@@ -695,9 +725,14 @@ const fetchPosts = async (isLoadMore = false) => {
     posts.value = []
   }
   try {
-    let url = `/api/posts/page?pageNum=${pageNum.value}&pageSize=${pageSize.value}`
-    if (activeBoardId.value !== 0)
+    let url
+    if (showHotPosts.value) {
+      url = `/api/posts/hot?pageNum=${pageNum.value}&pageSize=${pageSize.value}`
+    } else if (activeBoardId.value !== 0) {
       url = `/api/posts/board/${activeBoardId.value}?pageNum=${pageNum.value}&pageSize=${pageSize.value}`
+    } else {
+      url = `/api/posts/page?pageNum=${pageNum.value}&pageSize=${pageSize.value}`
+    }
 
     const response = await fetch(url)
     const result = await response.json()
@@ -748,7 +783,9 @@ const fetchPosts = async (isLoadMore = false) => {
 
       if (isLoadMore) posts.value = [...posts.value, ...newPosts]
       else posts.value = newPosts
-      hasMore.value = result.data.hasNextPage
+      hasMore.value = showHotPosts.value
+        ? result.data.pageNum < result.data.pages
+        : result.data.hasNextPage
     }
   } catch (error) {
     console.error(error)
@@ -797,13 +834,22 @@ const handleSearch = () => {
 }
 
 const goToHome = () => {
+  showHotPosts.value = false
   activeBoardId.value = 0
   fetchPosts(false)
 }
 
 const switchBoard = (id) => {
-  if (activeBoardId.value === id) return
+  if (activeBoardId.value === id && !showHotPosts.value) return
+  showHotPosts.value = false
   activeBoardId.value = id
+  fetchPosts(false)
+}
+
+const switchToHot = () => {
+  if (showHotPosts.value) return
+  showHotPosts.value = true
+  activeBoardId.value = 0
   fetchPosts(false)
 }
 
