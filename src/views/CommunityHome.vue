@@ -38,6 +38,14 @@
         <!-- 右侧用户操作 -->
         <div class="flex items-center gap-5">
           <button
+            @click="goToAiDashboard"
+            class="text-zinc-500 hover:text-indigo-500 transition-all duration-300 relative hover:-translate-y-0.5"
+            title="AI 学伴"
+          >
+            <Sparkles class="w-5 h-5" />
+          </button>
+
+          <button
             @click="goToGroupList"
             class="text-zinc-500 hover:text-zinc-900 transition-all duration-300 relative hover:-translate-y-0.5"
             title="群聊"
@@ -583,6 +591,7 @@ import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
   Search,
   Bell,
+  Sparkles,
   Users,
   MessageSquare,
   ThumbsUp,
@@ -980,6 +989,7 @@ const goToPostDetail = (postId) => router.push(`/post/${postId}`)
 const goToUserCenter = () => router.push('/user_center')
 const goToCreatePost = () => router.push('/create_post')
 const goToMessageCenter = () => router.push('/message')
+const goToAiDashboard = () => router.push('/ai')
 const goToGroupList = () => router.push('/groups')
 </script>
 

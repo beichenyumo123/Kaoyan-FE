@@ -10,6 +10,7 @@ import UserProfile from '@/views/UserProfile.vue'
 import GroupList from '@/views/GroupList.vue'
 import GroupChat from '@/views/GroupChat.vue'
 import AdminDashboard from '@/views/AdminDashboard.vue'
+import AiDashboard from '@/views/AiDashboard.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -62,6 +63,11 @@ const router = createRouter({
       path: '/chat/:groupId',
       name: 'GroupChat',
       component: GroupChat,
+    },
+    {
+      path: '/ai',
+      name: 'AiDashboard',
+      component: AiDashboard,
     },
     {
       path: '/admin/dashboard',
