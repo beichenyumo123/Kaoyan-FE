@@ -10,6 +10,10 @@ import UserProfile from '@/views/UserProfile.vue'
 import GroupList from '@/views/GroupList.vue'
 import GroupChat from '@/views/GroupChat.vue'
 import AdminDashboard from '@/views/AdminDashboard.vue'
+import VerificationPage from '@/views/VerificationPage.vue'
+import ExperienceSquare from '@/views/ExperienceSquare.vue'
+import ExperienceDetail from '@/views/ExperienceDetail.vue'
+import CreateExperience from '@/views/CreateExperience.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -67,6 +71,32 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'AdminDashboard',
       component: AdminDashboard,
+    },
+    // ==================== D 模块：上岸认证 + 经验贴 ====================
+    {
+      path: '/verification',
+      name: 'Verification',
+      component: VerificationPage,
+    },
+    {
+      path: '/experience',
+      name: 'ExperienceSquare',
+      component: ExperienceSquare,
+    },
+    {
+      path: '/experience/create',
+      name: 'CreateExperience',
+      component: CreateExperience,
+    },
+    {
+      path: '/experience/:id',
+      name: 'ExperienceDetail',
+      component: ExperienceDetail,
+    },
+    {
+      path: '/experience/:id/edit',
+      name: 'EditExperience',
+      component: CreateExperience,
     },
   ],
 })

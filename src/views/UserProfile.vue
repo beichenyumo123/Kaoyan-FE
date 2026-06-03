@@ -94,6 +94,12 @@
                   <h1 class="text-2xl sm:text-3xl font-bold text-zinc-900 flex items-center gap-2">
                     {{ userInfo.username }}
                     <span
+                      v-if="userInfo.isVerified"
+                      class="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase tracking-wider translate-y-0.5 flex items-center gap-1"
+                    >
+                      <ShieldCheck class="w-3 h-3" /> 已认证
+                    </span>
+                    <span
                       v-if="userInfo.role === 'ADMIN'"
                       class="px-2 py-0.5 bg-blue-100 text-blue-600 text-[10px] font-bold rounded-full uppercase tracking-wider translate-y-0.5"
                     >
@@ -169,20 +175,25 @@
                 </div>
               </div>
             </div>
+
+            <!-- 认证信息条 -->
+            <div v-if="userInfo.isVerified" class="mt-4 bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
+              <ShieldCheck class="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+              <div><div class="text-sm font-bold text-blue-700">已通过上岸认证</div><div class="text-xs text-blue-600 mt-1"><span>录取院校：{{ userInfo.verifiedSchool || '—' }}</span><span class="ml-3">录取专业：{{ userInfo.verifiedMajor || '—' }}</span></div></div>
+            </div>
           </div>
         </div>
 
-        <!-- ================= 标签页：发布的帖子列表 ================= -->
+        <!-- ================= 标签页 ================= -->
         <div class="mt-8">
-          <!-- 简化了Tab，只保留帖子 -->
           <div class="flex items-center gap-6 border-b border-zinc-200 mb-6">
-            <h2 class="pb-3 text-sm font-bold text-zinc-900 border-b-2 border-zinc-900">
-              发布的帖子
-            </h2>
+            <button @click="activeTab = 'posts'" :class="['pb-3 text-sm transition-all relative', activeTab === 'posts' ? 'font-bold text-zinc-900 border-b-2 border-zinc-900' : 'font-medium text-zinc-500 hover:text-zinc-900']">帖子</button>
+            <button @click="activeTab = 'experiences'" :class="['pb-3 text-sm transition-all relative', activeTab === 'experiences' ? 'font-bold text-zinc-900 border-b-2 border-zinc-900' : 'font-medium text-zinc-500 hover:text-zinc-900']">经验贴</button>
           </div>
 
-          <!-- 帖子列表有数据的情况 -->
-          <div v-if="userPosts.length > 0" class="space-y-4">
+          <!-- 帖子 Tab -->
+          <div v-if="activeTab === 'posts'">
+            <div v-if="userPosts.length > 0" class="space-y-4">
             <div
               v-for="post in userPosts"
               :key="post.id"
@@ -269,9 +280,50 @@
                 <div class="h-4 bg-zinc-200 rounded w-12"></div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </div> <!-- close posts list wrapper -->
+          </div> <!-- close activeTab === 'posts' -->
+
+          <!-- 经验贴 Tab -->
+          <div v-if="activeTab === 'experiences'" class="space-y-4">
+            <div v-if="isLoadingExperiences" class="space-y-3">
+              <div v-for="i in 3" :key="i" class="bg-white border border-zinc-200 rounded-xl p-5 animate-pulse">
+                <div class="h-5 w-48 bg-zinc-200 rounded mb-3"></div>
+                <div class="grid grid-cols-4 gap-3"><div v-for="j in 4" :key="j" class="h-14 bg-zinc-100 rounded-lg"></div></div>
+              </div>
+            </div>
+
+            <article v-else-if="experiencePosts.length > 0" v-for="exp in experiencePosts" :key="exp.id" @click="goToExperienceDetail(exp.id)" class="bg-white border border-zinc-200 rounded-xl p-5 hover:border-zinc-300 hover:shadow-md transition-all cursor-pointer group">
+              <div class="flex items-center gap-2 mb-3 text-sm">
+                <span class="text-zinc-600">{{ exp.undergradSchool || '未知本科' }}</span>
+                <ArrowRight class="w-3.5 h-3.5 text-zinc-400" />
+                <span class="font-bold text-zinc-900">{{ exp.targetSchool }}</span>
+                <span class="text-zinc-400">·</span>
+                <span class="text-zinc-600">{{ exp.targetMajor }}</span>
+                <span v-if="exp.isCrossMajor" class="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded ml-auto">跨考</span>
+                <span v-if="exp.isSecondAttempt" class="text-[10px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">二战</span>
+              </div>
+              <div class="grid grid-cols-4 gap-3 mb-3">
+                <div class="bg-zinc-50 rounded-lg p-2 text-center border border-zinc-100"><div class="text-[10px] text-zinc-500">总分</div><div class="text-sm font-bold text-blue-600">{{ exp.initialExamTotal || '-' }}</div></div>
+                <div class="bg-zinc-50 rounded-lg p-2 text-center border border-zinc-100"><div class="text-[10px] text-zinc-500">政治</div><div class="text-sm font-bold">{{ exp.initialExamPolitics || '-' }}</div></div>
+                <div class="bg-zinc-50 rounded-lg p-2 text-center border border-zinc-100"><div class="text-[10px] text-zinc-500">英语</div><div class="text-sm font-bold">{{ exp.initialExamEnglish || '-' }}</div></div>
+                <div class="bg-zinc-50 rounded-lg p-2 text-center border border-zinc-100"><div class="text-[10px] text-zinc-500">专业课</div><div class="text-sm font-bold">{{ exp.initialExamMajor || '-' }}</div></div>
+              </div>
+              <div class="flex items-center gap-4 text-zinc-400 text-xs">
+                <span class="flex items-center gap-1"><ThumbsUp class="w-3 h-3" /> {{ exp.likeCount || 0 }}</span>
+                <span class="flex items-center gap-1"><Bookmark class="w-3 h-3" /> {{ exp.collectCount || 0 }}</span>
+                <span class="flex items-center gap-1"><Eye class="w-3 h-3" /> {{ exp.viewCount || 0 }}</span>
+                <span class="ml-auto">{{ formatDate(exp.createdAt) }}</span>
+              </div>
+            </article>
+
+            <div v-else class="bg-white border border-zinc-200 rounded-2xl p-12 text-center shadow-sm">
+              <div class="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-4"><BookOpen class="w-8 h-8 text-zinc-300" /></div>
+              <h3 class="text-sm font-bold text-zinc-900">暂无经验贴</h3>
+              <p class="text-xs text-zinc-500 mt-1">该用户还没有分享过经验贴</p>
+            </div>
+          </div> <!-- close activeTab === 'experiences' -->
+        </div> <!-- close tabs container -->
+      </div> <!-- close v-else-if="userInfo" -->
 
       <!-- 用户不存在或加载失败 -->
       <div
@@ -310,6 +362,9 @@ import {
   Eye,
   MessageSquare,
   Clock,
+  ShieldCheck,
+  ArrowRight,
+  Bookmark,
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -329,6 +384,11 @@ const pageSize = ref(10)
 const hasMorePosts = ref(true)
 const isLoadingPosts = ref(false)
 
+// D 模块：经验贴相关
+const activeTab = ref('posts')
+const experiencePosts = ref([])
+const isLoadingExperiences = ref(false)
+
 // 获取 Token
 const getToken = () => localStorage.getItem('token')
 
@@ -347,6 +407,7 @@ onMounted(async () => {
       fetchUserInfo(targetUserId),
       fetchUserStats(targetUserId),
       fetchUserPosts(targetUserId, false),
+      fetchUserExperiences(targetUserId),
     ])
   } else {
     isLoading.value = false
@@ -461,6 +522,17 @@ const goBack = () => router.back()
 const goToHome = () => router.push('/community')
 const goToSettings = () => router.push('/user_center')
 const goToPostDetail = (postId) => router.push(`/post/${postId}`)
+
+// D 模块：获取用户经验贴
+const fetchUserExperiences = async (userId) => {
+  isLoadingExperiences.value = true
+  try {
+    const r = await fetch(`/api/users/${userId}/experiences?pageNum=1&pageSize=20`).then(r => r.json())
+    if (r.code === 200) experiencePosts.value = r.data?.list || []
+  } catch (e) { console.error('获取用户经验贴失败', e) }
+  finally { isLoadingExperiences.value = false }
+}
+const goToExperienceDetail = (id) => { if (id) router.push(`/experience/${id}`) }
 
 const goToMessage = () => {
   if (!userInfo.value) return

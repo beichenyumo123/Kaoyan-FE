@@ -165,7 +165,17 @@
             </nav>
           </div>
 
-          <div class="border-t border-zinc-200 pt-6">
+          <div class="border-t border-zinc-200 pt-6 space-y-3">
+            <!-- D 模块快捷入口 -->
+            <button
+              @click="goToExperienceSquare"
+              class="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-blue-700 hover:from-blue-100 hover:to-indigo-100 hover:shadow-sm transition-all duration-300 font-medium"
+            >
+              <GraduationCap class="w-4 h-4 text-blue-500" />
+              上岸经验广场
+              <ArrowRight class="w-3.5 h-3.5 ml-auto text-blue-400" />
+            </button>
+
             <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
               <h3 class="text-sm font-medium text-blue-900 mb-1">正在备考 408？</h3>
               <p class="text-xs text-blue-700 mb-3 leading-relaxed">
@@ -596,6 +606,8 @@ import {
   Flame,
   X,
   Bookmark,
+  GraduationCap,
+  ArrowRight,
 } from 'lucide-vue-next'
 import router from '@/router'
 import { stripHtml } from '@/utils/markdown'
@@ -981,6 +993,7 @@ const goToUserCenter = () => router.push('/user_center')
 const goToCreatePost = () => router.push('/create_post')
 const goToMessageCenter = () => router.push('/message')
 const goToGroupList = () => router.push('/groups')
+const goToExperienceSquare = () => router.push('/experience')
 </script>
 
 <style scoped>
