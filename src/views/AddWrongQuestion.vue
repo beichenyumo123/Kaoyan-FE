@@ -167,13 +167,15 @@
           <h2 class="text-lg font-semibold text-zinc-900 mb-1">OCR 识别结果</h2>
           <p class="text-sm text-zinc-500 mb-6">AI 自动识别题目文字，您可以编辑修正</p>
 
-          <!-- OCR Animation / Result -->
+          <!-- OCR Loading -->
           <div v-if="ocrLoading" class="text-center py-12">
             <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-zinc-100 flex items-center justify-center animate-pulse">
               <ScanLine :size="32" class="text-zinc-400" />
             </div>
-            <p class="text-sm text-zinc-500">正在识别中...</p>
-            <p class="text-xs text-zinc-400 mt-1 typing-animation">{{ mockOcrText }}</p>
+            <p class="text-sm text-zinc-500">
+              {{ ocrRecognizing ? '正在上传图片并识别...' : '正在识别中...' }}
+            </p>
+            <p class="text-xs text-zinc-400 mt-1">请稍候，这可能需要几秒钟</p>
           </div>
 
           <div v-else class="space-y-4">
@@ -389,49 +391,47 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowLeft, ArrowRight, Camera, Upload, X, ScanLine,
   CheckCircle2, Save, Plus, Check,
 } from 'lucide-vue-next'
-import { AlertCircle, AlertTriangle, CheckCircle2 as CheckCircle22, Trophy } from 'lucide-vue-next'
+import { AlertCircle, AlertTriangle, Trophy } from 'lucide-vue-next'
 import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
+import { masteryLevelToScore } from '@/utils/adapters'
+import {
+  uploadImage, ocrRecognize, createNote, searchKnowledgePoints,
+} from '@/api/mistake'
+import type { KnowledgePointVO } from '@/types/mistake'
 
 const router = useRouter()
-const getToken = () => localStorage.getItem('token')
 
 const steps = ['拍照上传', 'OCR 识别', '知识点', '填写详情']
 const currentStep = ref(0)
-const uploadTab = ref('camera')
+const uploadTab = ref<'camera' | 'file'>('camera')
 const dragOver = ref(false)
-const uploadedImage = ref(null)
-const uploadedFile = ref(null)
+const uploadedImage = ref<string | null>(null)
+const uploadedFile = ref<File | null>(null)
+const uploadedImageUrl = ref<string | null>(null) // 后端图片 URL
 const manualText = ref('')
 const ocrLoading = ref(false)
-const mockOcrText = ref('')
 const ocrConfidence = ref(0)
 const ocrText = ref('')
-const selectedKnowledgePoints = ref([])
+const ocrRecognizing = ref(false)
+const selectedKnowledgePoints = ref<number[]>([])
+const recommendedPoints = ref<KnowledgePointVO[]>([])
 const tagInput = ref('')
 const submitting = ref(false)
 
-const cameraInput = ref(null)
-const fileInput = ref(null)
-
-const errorReasons = [
-  { value: 'CONCEPT', label: '概念不清', icon: '📖' },
-  { value: 'CALCULATION', label: '计算错误', icon: '🔢' },
-  { value: 'CARELESS', label: '审题失误', icon: '👀' },
-  { value: 'FORGET', label: '知识点遗忘', icon: '🧠' },
-  { value: 'OTHER', label: '其他', icon: '📌' },
-]
+const cameraInput = ref<HTMLInputElement | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 
 const masteryLevels = [
   { value: 'NONE', label: '完全不会', icon: AlertCircle, activeClass: 'bg-red-50 text-red-700 border-red-300' },
   { value: 'LOW', label: '不太熟练', icon: AlertTriangle, activeClass: 'bg-orange-50 text-orange-700 border-orange-300' },
-  { value: 'MEDIUM', label: '基本掌握', icon: CheckCircle22, activeClass: 'bg-blue-50 text-blue-700 border-blue-300' },
+  { value: 'MEDIUM', label: '基本掌握', icon: CheckCircle2, activeClass: 'bg-blue-50 text-blue-700 border-blue-300' },
   { value: 'HIGH', label: '完全掌握', icon: Trophy, activeClass: 'bg-green-50 text-green-700 border-green-300' },
 ]
 
@@ -439,65 +439,27 @@ const form = ref({
   subject: '',
   errorReason: '',
   notes: '',
-  masteryLevel: 'LOW',
-  tags: [],
+  masteryLevel: 'LOW' as 'NONE' | 'LOW' | 'MEDIUM' | 'HIGH',
+  tags: [] as string[],
 })
 
 const canSubmit = computed(() => {
   return form.value.subject && form.value.errorReason
 })
 
-const recommendedPoints = computed(() => {
-  if (!ocrText.value.trim()) return []
-  const text = ocrText.value.toLowerCase()
-  const matches = []
-  // Keyword matching for recommendations
-  const keywordMap = [
-    { keywords: ['导数', '微分', '切线', '极值', '单调', 'f(x)'], ids: [11, 12] },
-    { keywords: ['积分', '不定积分', '定积分', '∫', 'dx'], ids: [13, 14] },
-    { keywords: ['极限', '连续', '无穷小', '无穷大'], ids: [11] },
-    { keywords: ['矩阵', '行列式', '特征值', '特征向量', '线性'], ids: [21, 22, 23, 24] },
-    { keywords: ['二叉树', '遍历', '先序', '中序', '后序', '树'], ids: [52] },
-    { keywords: ['tcp', 'udp', 'http', 'dns', 'osi', '协议', '握手'], ids: [61, 62, 63] },
-    { keywords: ['virtual', 'require', 'suggest', 'insist', '虚拟语气'], ids: [31] },
-    { keywords: ['辩证', '唯物', '认识', '反映', '本质'], ids: [42, 41] },
-    { keywords: ['排序', '查找', '算法', '复杂度'], ids: [54, 55] },
-    { keywords: ['数据', '线性表', '链表', '栈', '队列'], ids: [51] },
-  ]
-
-  const matchedIds = new Set()
-  keywordMap.forEach(({ keywords, ids }) => {
-    if (keywords.some((kw) => text.includes(kw))) {
-      ids.forEach((id) => matchedIds.add(id))
-    }
-  })
-
-  // Find point names by id from the mock data
-  const pointMap = {
-    11: '函数极限与连续', 12: '导数与微分', 13: '不定积分', 14: '定积分',
-    21: '行列式', 22: '矩阵', 23: '向量与线性方程组', 24: '特征值与特征向量',
-    31: '主旨大意题', 32: '细节理解题',
-    41: '唯物辩证法', 42: '认识论',
-    51: '线性表', 52: '树与二叉树', 54: '查找', 55: '排序',
-    61: 'OSI模型', 62: 'TCP/IP协议', 63: 'HTTP协议',
-  }
-
-  return Array.from(matchedIds).map((id) => ({ id, name: pointMap[id] || `知识点#${id}` }))
-})
-
-function stepClass(index) {
-  if (index === currentStep) return 'text-zinc-900'
-  if (index < currentStep) return 'text-zinc-500'
+function stepClass(index: number) {
+  if (index === currentStep.value) return 'text-zinc-900'
+  if (index < currentStep.value) return 'text-zinc-500'
   return 'text-zinc-300'
 }
 
-function stepDotClass(index) {
-  if (index < currentStep) return 'bg-zinc-900 text-white'
-  if (index === currentStep) return 'bg-zinc-900 text-white'
+function stepDotClass(index: number) {
+  if (index < currentStep.value) return 'bg-zinc-900 text-white'
+  if (index === currentStep.value) return 'bg-zinc-900 text-white'
   return 'bg-zinc-100 text-zinc-400'
 }
 
-function toggleRecommended(id) {
+function toggleRecommended(id: number) {
   const idx = selectedKnowledgePoints.value.indexOf(id)
   if (idx >= 0) {
     selectedKnowledgePoints.value.splice(idx, 1)
@@ -514,18 +476,19 @@ function triggerFileUpload() {
   fileInput.value?.click()
 }
 
-function handleFileSelect(event) {
-  const file = event.target.files?.[0]
+function handleFileSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
   if (file) processFile(file)
 }
 
-function handleDrop(event) {
+function handleDrop(event: DragEvent) {
   dragOver.value = false
   const file = event.dataTransfer?.files?.[0]
   if (file) processFile(file)
 }
 
-function processFile(file) {
+function processFile(file: File) {
   if (!file.type.startsWith('image/')) {
     alert('请上传图片文件')
     return
@@ -533,7 +496,7 @@ function processFile(file) {
   uploadedFile.value = file
   const reader = new FileReader()
   reader.onload = (e) => {
-    uploadedImage.value = e.target.result
+    uploadedImage.value = e.target?.result as string
   }
   reader.readAsDataURL(file)
 }
@@ -541,72 +504,104 @@ function processFile(file) {
 function clearImage() {
   uploadedImage.value = null
   uploadedFile.value = null
+  uploadedImageUrl.value = null
 }
 
 function skipToManual() {
-  manualText.value = ocrText.value || ''
   currentStep.value = 1
   ocrLoading.value = false
-  ocrText.value = manualText.value || ''
+  ocrRecognizing.value = false
+  if (!ocrText.value) {
+    ocrText.value = manualText.value || ''
+  }
 }
 
 async function goToOCR() {
+  // Manual mode without image
   if (manualText.value && !uploadedImage.value) {
     ocrText.value = manualText.value
-    ocrLoading.value = false
     ocrConfidence.value = 100
+    currentStep.value = 1
+    // Still try to search knowledge points
+    fetchRecommendations()
+    return
+  }
+
+  if (!uploadedFile.value && !uploadedImage.value) {
     currentStep.value = 1
     return
   }
 
   currentStep.value = 1
   ocrLoading.value = true
-  mockOcrText.value = ''
+  ocrRecognizing.value = true
 
-  // Simulate OCR typing animation
-  const mockText = uploadedFile.value
-    ? 'OCR 模拟识别结果：\n\n识别到的题目内容...\n\n请检查并修正识别错误后，点击下一步继续。'
-    : manualText.value || ''
-
-  if (mockText) {
-    for (let i = 0; i < mockText.length; i++) {
-      await new Promise((r) => setTimeout(r, 30))
-      mockOcrText.value += mockText[i]
-    }
-  }
-
-  // Simulate API delay
-  await new Promise((r) => setTimeout(r, 800))
-
-  // Try real OCR API
   try {
-    const token = getToken()
-    const formData = new FormData()
-    if (uploadedFile.value) {
+    // Step 1: Upload image
+    let imageUrl = uploadedImageUrl.value
+    if (uploadedFile.value && !imageUrl) {
+      const formData = new FormData()
       formData.append('file', uploadedFile.value)
-    } else if (manualText.value) {
-      formData.append('text', manualText.value)
+      const uploadResult = await uploadImage(formData)
+      if (uploadResult.code === 200 && uploadResult.data) {
+        imageUrl = uploadResult.data.url || (uploadResult.data as any)
+        uploadedImageUrl.value = imageUrl
+      }
     }
 
-    const resp = await fetch('/api/questions/ocr', {
-      method: 'POST',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    })
-    const result = await resp.json()
-    if (result.code === 200 && result.data) {
-      ocrText.value = result.data.text || result.data.ocrText || ''
-      ocrConfidence.value = result.data.confidence || 90
+    if (!imageUrl) {
+      throw new Error('图片上传失败')
+    }
+
+    // Step 2: OCR
+    const ocrResult = await ocrRecognize(imageUrl)
+    if (ocrResult.code === 200 && ocrResult.data) {
+      ocrText.value = ocrResult.data.text || ''
+      ocrConfidence.value = 90
+      // Use backend-suggested knowledge point IDs
+      if (ocrResult.data.matchedKnowledgePointIds?.length) {
+        selectedKnowledgePoints.value = ocrResult.data.matchedKnowledgePointIds
+      }
+      if (ocrResult.data.matchedKnowledgePointNames?.length) {
+        recommendedPoints.value = ocrResult.data.matchedKnowledgePointNames.map(
+          (name, i) => ({
+            id: ocrResult.data.matchedKnowledgePointIds?.[i] ?? -(i + 1),
+            parentId: null,
+            name,
+            subject: ocrResult.data.suggestedSubject || '',
+            level: 3,
+          }),
+        )
+      }
     } else {
-      throw new Error('OCR API returned error')
+      throw new Error('OCR 识别失败')
     }
   } catch (err) {
-    console.error('OCR API 调用失败，使用模拟数据:', err)
-    ocrText.value = mockText || '模拟 OCR 识别结果：\n请在此编辑识别到的题目内容...'
-    ocrConfidence.value = 85
+    console.error('OCR 失败:', err)
+    ocrText.value = 'OCR 识别失败，请手动输入题目内容，或返回上一步重试。'
+    ocrConfidence.value = 0
+    // Fallback: search knowledge points by filename or just show none
+  } finally {
+    ocrLoading.value = false
+    ocrRecognizing.value = false
   }
 
-  ocrLoading.value = false
+  // Search knowledge points based on recognized text
+  fetchRecommendations()
+}
+
+async function fetchRecommendations() {
+  if (!ocrText.value.trim() || ocrText.value.length < 3) return
+  try {
+    // Use first 20 chars as keyword for search
+    const keyword = ocrText.value.trim().substring(0, 30)
+    const result = await searchKnowledgePoints(keyword)
+    if (result.code === 200 && result.data) {
+      recommendedPoints.value = result.data
+    }
+  } catch {
+    // 推荐功能可选，静默失败
+  }
 }
 
 function addTag() {
@@ -617,7 +612,7 @@ function addTag() {
   tagInput.value = ''
 }
 
-function removeTag(index) {
+function removeTag(index: number) {
   form.value.tags.splice(index, 1)
 }
 
@@ -625,57 +620,18 @@ async function submitQuestion() {
   if (!canSubmit.value) return
   submitting.value = true
 
-  const payload = {
-    ocrText: ocrText.value,
-    subject: form.value.subject,
-    errorReason: form.value.errorReason,
-    notes: form.value.notes,
-    masteryLevel: form.value.masteryLevel,
-    knowledgePointIds: selectedKnowledgePoints.value,
-    tags: form.value.tags,
-  }
-
   try {
-    const token = getToken()
-
-    // If there's an image, upload it first
-    let imageUrl = null
-    if (uploadedFile.value) {
-      try {
-        const imgFormData = new FormData()
-        imgFormData.append('file', uploadedFile.value)
-        const imgResp = await fetch('/api/upload/image', {
-          method: 'POST',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-          body: imgFormData,
-        })
-        const imgResult = await imgResp.json()
-        if (imgResult.code === 200 && imgResult.data) {
-          imageUrl = imgResult.data.url || imgResult.data
-        }
-      } catch (imgErr) {
-        console.error('上传图片失败:', imgErr)
-        // Continue without image
-      }
-    }
-
-    if (imageUrl) {
-      payload.imageUrl = imageUrl
-    }
-
-    const resp = await fetch('/api/questions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
+    const result = await createNote({
+      subject: form.value.subject,
+      questionContent: ocrText.value,
+      knowledgePoints: selectedKnowledgePoints.value.join(','),
+      source: uploadedImageUrl.value ? 'OCR' : 'MANUAL',
+      imageUrl: uploadedImageUrl.value || undefined,
     })
-    const result = await resp.json()
+
     if (result.code === 200 && result.data) {
-      router.push(`/questions/${result.data.id || result.data}`)
+      router.push(`/questions/${result.data.id}`)
     } else {
-      // Mock: go to questions list
       router.push('/questions')
     }
   } catch (err) {

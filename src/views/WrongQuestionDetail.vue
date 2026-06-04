@@ -80,15 +80,15 @@
               <div class="bg-white border border-zinc-200 rounded-2xl p-6">
                 <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">题目内容</h3>
                 <p class="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                  {{ question.ocrText || '未识别文本内容' }}
+                  {{ question.questionContent || '未识别文本内容' }}
                 </p>
               </div>
 
-              <!-- Notes Card -->
-              <div v-if="question.notes" class="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">备注笔记</h3>
-                <div class="prose prose-sm max-w-none text-zinc-700">
-                  {{ question.notes }}
+              <!-- Answer Card -->
+              <div v-if="question.answer" class="bg-white border border-zinc-200 rounded-2xl p-6">
+                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">解答笔记</h3>
+                <div class="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                  {{ question.answer }}
                 </div>
               </div>
             </div>
@@ -180,11 +180,11 @@
           <div class="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5 animate-fade-in-up">
             <h2 class="text-lg font-semibold text-zinc-900">编辑错题</h2>
 
-            <!-- OCR Text -->
+            <!-- Question Content -->
             <div>
               <label class="block text-sm font-medium text-zinc-700 mb-2">题目内容</label>
               <textarea
-                v-model="editForm.ocrText"
+                v-model="editForm.questionContent"
                 rows="5"
                 class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-y"
               />
@@ -204,27 +204,13 @@
               </select>
             </div>
 
-            <!-- Error Reason -->
+            <!-- Notes / Answer -->
             <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">错因</label>
-              <select
-                v-model="editForm.errorReason"
-                class="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all"
-              >
-                <option value="CONCEPT">概念不清</option>
-                <option value="CALCULATION">计算错误</option>
-                <option value="CARELESS">审题失误</option>
-                <option value="FORGET">知识点遗忘</option>
-                <option value="OTHER">其他</option>
-              </select>
-            </div>
-
-            <!-- Notes -->
-            <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">备注</label>
+              <label class="block text-sm font-medium text-zinc-700 mb-2">备注笔记</label>
               <textarea
-                v-model="editForm.notes"
+                v-model="editForm.answer"
                 rows="4"
+                placeholder="记录解题思路、答案、注意事项..."
                 class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-y"
               />
             </div>
@@ -290,7 +276,7 @@
     >
       <div class="max-w-4xl mx-auto flex items-center gap-3">
         <button
-          @click="markReviewed"
+          @click="openReviewDialog"
           :disabled="reviewedToday"
           class="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
           :class="reviewedToday
@@ -306,10 +292,92 @@
           class="py-2.5 px-4 rounded-xl text-sm font-medium border border-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 flex items-center gap-2"
         >
           <Download :size="16" />
-          导出PDF
+          客户端PDF
+        </button>
+        <button
+          @click="exportServerSidePdf"
+          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 flex items-center gap-2"
+        >
+          <FileDown :size="16" />
+          高质量PDF
         </button>
       </div>
     </div>
+
+    <!-- Review Dialog -->
+    <Teleport to="body">
+      <transition name="modal">
+        <div
+          v-if="showReviewDialog"
+          class="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4"
+          @click.self="showReviewDialog = false"
+        >
+          <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" @click.stop>
+            <h3 class="text-lg font-bold text-zinc-900 text-center mb-4">完成复习</h3>
+
+            <!-- Mastery Slider -->
+            <div class="mb-5">
+              <label class="block text-sm text-zinc-600 mb-2">
+                掌握程度: <span class="font-semibold text-zinc-900">{{ reviewMastery }}%</span>
+              </label>
+              <input
+                v-model="reviewMastery"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                class="w-full accent-zinc-900"
+              />
+              <div class="flex justify-between text-xs text-zinc-400 mt-1">
+                <span>完全不会</span>
+                <span>基本掌握</span>
+                <span>完全掌握</span>
+              </div>
+            </div>
+
+            <!-- Correct / Incorrect Toggle -->
+            <div class="mb-6">
+              <label class="block text-sm text-zinc-600 mb-2">作答结果</label>
+              <div class="flex gap-2">
+                <button
+                  @click="reviewIsCorrect = 1"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all"
+                  :class="reviewIsCorrect === 1
+                    ? 'bg-green-50 text-green-700 border-green-300'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-green-300'"
+                >
+                  ✓ 答对了
+                </button>
+                <button
+                  @click="reviewIsCorrect = 0"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all"
+                  :class="reviewIsCorrect === 0
+                    ? 'bg-red-50 text-red-700 border-red-300'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-red-300'"
+                >
+                  ✗ 没答对
+                </button>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                @click="showReviewDialog = false"
+                class="flex-1 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-all"
+              >
+                取消
+              </button>
+              <button
+                @click="confirmReview"
+                class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 transition-all active:scale-95"
+              >
+                确认完成
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
 
     <!-- Image Fullscreen Modal -->
     <Teleport to="body">
@@ -431,7 +499,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
@@ -442,14 +510,18 @@ import SubjectIcon from '@/components/SubjectIcon.vue'
 import MasteryBadge from '@/components/MasteryBadge.vue'
 import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
 import { formatDaysSince, getReviewStage } from '@/utils/ebbinghaus'
-import { exportQuestionToPdf } from '@/utils/pdf-export'
+import { exportQuestionsToPdf } from '@/utils/pdf-export'
+import { toMistakeNoteVO, masteryLevelToScore } from '@/utils/adapters'
+import {
+  getNoteById, updateNote, deleteNote, completeReview, exportServerPdf,
+} from '@/api/mistake'
+import type { MistakeNoteVO, MasteryLevel } from '@/types/mistake'
 
 const router = useRouter()
 const route = useRoute()
-const getToken = () => localStorage.getItem('token')
 
 const loading = ref(true)
-const question = ref(null)
+const question = ref<MistakeNoteVO | null>(null)
 const isEditing = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
@@ -457,41 +529,37 @@ const reviewedToday = ref(false)
 const showImageModal = ref(false)
 const showDeleteModal = ref(false)
 const showShareModal = ref(false)
+const showReviewDialog = ref(false)
 const copySuccess = ref(false)
 
-const toast = reactive({ show: false, message: '', type: 'success' })
+// Review dialog state
+const reviewMastery = ref(60)
+const reviewIsCorrect = ref<0 | 1>(1)
+
+const toast = reactive({ show: false, message: '', type: 'success' as 'success' | 'error' })
 
 const editForm = reactive({
-  ocrText: '',
+  questionContent: '',
   subject: '',
-  errorReason: '',
-  notes: '',
-  masteryLevel: '',
-  knowledgePointIds: [],
+  answer: '',
+  masteryLevel: 'LOW' as MasteryLevel,
+  knowledgePointIds: [] as number[],
 })
 
-const errorReasonMap = {
-  CONCEPT: '概念不清',
-  CALCULATION: '计算错误',
-  CARELESS: '审题失误',
-  FORGET: '知识点遗忘',
-  OTHER: '其他',
-}
-
 const errorReasonLabel = computed(() => {
-  return errorReasonMap[question.value?.errorReason] || question.value?.errorReason || '-'
+  return question.value?.errorReason || '-'
 })
 
 const reviewStage = computed(() => {
   return getReviewStage(question.value?.reviewCount || 0)
 })
 
-function isDueSoon(dateStr) {
+function isDueSoon(dateStr: string | null) {
   if (!dateStr) return false
   return dateStr <= new Date().toISOString().split('T')[0]
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr: string | null) {
   if (!dateStr) return '-'
   return new Date(dateStr).toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -500,7 +568,7 @@ function formatDate(dateStr) {
   })
 }
 
-function showToast(message, type = 'success') {
+function showToast(message: string, type: 'success' | 'error' = 'success') {
   toast.message = message
   toast.type = type
   toast.show = true
@@ -513,10 +581,9 @@ function goBack() {
 
 function startEdit() {
   if (question.value) {
-    editForm.ocrText = question.value.ocrText || ''
+    editForm.questionContent = question.value.questionContent || ''
     editForm.subject = question.value.subject || ''
-    editForm.errorReason = question.value.errorReason || ''
-    editForm.notes = question.value.notes || ''
+    editForm.answer = question.value.answer || ''
     editForm.masteryLevel = question.value.masteryLevel || 'LOW'
     editForm.knowledgePointIds = [...(question.value.knowledgePointIds || [])]
     isEditing.value = true
@@ -530,88 +597,82 @@ function cancelEdit() {
 async function saveEdit() {
   saving.value = true
   try {
-    const token = getToken()
-    const payload = { ...editForm }
-
-    const resp = await fetch(`/api/questions/${question.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(payload),
+    const result = await updateNote({
+      id: question.value!.id,
+      questionContent: editForm.questionContent,
+      answer: editForm.answer || undefined,
+      knowledgePoints: editForm.knowledgePointIds.join(','),
+      masteryLevel: masteryLevelToScore(editForm.masteryLevel),
     })
-    const result = await resp.json()
     if (result.code === 200) {
-      // Update local state
-      Object.assign(question.value, editForm)
-      question.value.knowledgePoints = result.data?.knowledgePoints || question.value.knowledgePoints
+      // Refresh from server
+      await fetchQuestion()
       isEditing.value = false
       showToast('保存成功')
     } else {
-      // Mock: update locally
-      Object.assign(question.value, editForm)
-      isEditing.value = false
-      showToast('保存成功')
+      showToast(result.message || '保存失败', 'error')
     }
-  } catch (err) {
+  } catch (err: any) {
     console.error('保存失败:', err)
-    // Mock: still update locally
-    Object.assign(question.value, editForm)
-    isEditing.value = false
-    showToast('已保存（离线模式）')
+    showToast(err.message || '保存失败，请稍后重试', 'error')
   } finally {
     saving.value = false
   }
 }
 
 async function deleteQuestion() {
+  if (!question.value) return
   deleting.value = true
   try {
-    const token = getToken()
-    await fetch(`/api/questions/${question.value.id}`, {
-      method: 'DELETE',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-  } catch (err) {
-    console.error('删除失败:', err)
-  } finally {
-    deleting.value = false
+    await deleteNote(question.value.id)
     showDeleteModal.value = false
     router.push('/questions')
+  } catch (err) {
+    console.error('删除失败:', err)
+    showDeleteModal.value = false
+    router.push('/questions')
+  } finally {
+    deleting.value = false
   }
 }
 
-async function markReviewed() {
+function openReviewDialog() {
   if (reviewedToday.value) return
-  reviewedToday.value = true
+  reviewMastery.value = Math.max((question.value?.masteryScore || 0) + 10, 30)
+  reviewIsCorrect.value = 1
+  showReviewDialog.value = true
+}
 
-  // Update local state
-  if (question.value) {
-    question.value.reviewCount++
-    question.value.lastReviewDate = new Date().toISOString().split('T')[0]
-    // Calculate next review date
-    const intervals = [1, 2, 4, 7, 15, 30]
-    const idx = Math.min(question.value.reviewCount, intervals.length - 1)
-    const nextDate = new Date()
-    nextDate.setDate(nextDate.getDate() + intervals[idx])
-    question.value.nextReviewDate = nextDate.toISOString().split('T')[0]
-  }
+async function confirmReview() {
+  if (!question.value || reviewedToday.value) return
+  showReviewDialog.value = false
 
   try {
-    const token = getToken()
-    await fetch(`/api/review-plans/${question.value?.id}/review`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+    const result = await completeReview(question.value.id, {
+      masteryAfter: reviewMastery.value,
+      isCorrect: reviewIsCorrect.value,
     })
-  } catch (err) {
+    if (result.code === 200 && result.data) {
+      reviewedToday.value = true
+      // Update local from server response
+      if (question.value) {
+        question.value.masteryScore = result.data.masteryLevel
+        question.value.masteryLevel = result.data.masteryLevel > 70 ? 'HIGH'
+          : result.data.masteryLevel > 40 ? 'MEDIUM'
+          : result.data.masteryLevel > 0 ? 'LOW' : 'NONE'
+        question.value.reviewStage = result.data.reviewStage
+        question.value.reviewCount = result.data.reviewCount
+        question.value.nextReviewDate = result.data.nextReviewDate
+        question.value.lastReviewDate = new Date().toISOString().split('T')[0]
+      }
+      showToast('已标记复习完成！')
+    } else {
+      showToast(result.message || '标记失败', 'error')
+    }
+  } catch (err: any) {
     console.error('标记复习失败:', err)
+    showToast(err.message || '操作失败，请稍后重试', 'error')
   }
-
-  showToast('已标记为已复习，下次复习日期已更新')
 }
 
 function shareQuestion() {
@@ -637,8 +698,26 @@ function shareToGroup() {
 
 function exportPdf() {
   if (question.value) {
-    exportQuestionToPdf(question.value)
+    exportQuestionsToPdf([question.value as any], question.value.questionContent.substring(0, 30))
     showToast('PDF 已开始下载')
+  }
+}
+
+async function exportServerSidePdf() {
+  if (!question.value) return
+  try {
+    const blob = await exportServerPdf([question.value.id])
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `错题_${question.value.id}.pdf`
+    a.click()
+    URL.revokeObjectURL(url)
+    showToast('高质量 PDF 已下载')
+  } catch (err) {
+    console.error('服务端PDF导出失败:', err)
+    showToast('服务端PDF导出失败，使用客户端导出', 'error')
+    exportPdf()
   }
 }
 
@@ -648,22 +727,20 @@ function exportPdfFromModal() {
 }
 
 async function fetchQuestion() {
-  const id = route.params.id
+  const id = Number(route.params.id)
+  if (!id || isNaN(id)) {
+    loading.value = false
+    return
+  }
+
   try {
-    const token = getToken()
-    const resp = await fetch(`/api/questions/${id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = await resp.json()
+    const result = await getNoteById(id)
     if (result.code === 200 && result.data) {
-      question.value = result.data
-    } else {
-      // Use mock data
-      question.value = getMockQuestionById(Number(id))
+      question.value = toMistakeNoteVO(result.data)
     }
   } catch (err) {
     console.error('获取错题详情失败:', err)
-    question.value = getMockQuestionById(Number(id))
+    question.value = null
   }
 
   // Check if already reviewed today
@@ -672,80 +749,6 @@ async function fetchQuestion() {
   }
 
   loading.value = false
-}
-
-function getMockQuestionById(id) {
-  const mockQuestions = [
-    {
-      id: 1,
-      imageUrl: null,
-      ocrText: '设函数 f(x) = x³ - 3x + 1，求 f(x) 的极值点和极值。',
-      subject: 'MATH',
-      errorReason: 'CALCULATION',
-      notes: '求导后忘记令导数为0，直接代入了端点值。\n\n正确解法：\n1. f\'(x) = 3x² - 3 = 3(x² - 1)\n2. 令 f\'(x) = 0，得 x = ±1\n3. f\'\'(x) = 6x\n4. f\'\'(-1) = -6 < 0，所以 x = -1 是极大值点，极大值 f(-1) = 3\n5. f\'\'(1) = 6 > 0，所以 x = 1 是极小值点，极小值 f(1) = -1',
-      masteryLevel: 'LOW',
-      knowledgePointIds: [12],
-      knowledgePoints: [{ id: 12, name: '导数与微分' }],
-      tags: ['极值', '求导', '三次函数'],
-      reviewCount: 2,
-      lastReviewDate: '2026-06-02',
-      nextReviewDate: '2026-06-06',
-      createdAt: '2026-05-28',
-      updatedAt: '2026-06-02',
-    },
-    {
-      id: 2,
-      imageUrl: null,
-      ocrText: 'The professor required that we __ the report by Friday.\nA. hand in  B. handed in  C. would hand in  D. had handed in',
-      subject: 'ENGLISH',
-      errorReason: 'FORGET',
-      notes: 'require that + (should) do 表示虚拟语气，should可省略，所以用动词原形 hand in。',
-      masteryLevel: 'MEDIUM',
-      knowledgePointIds: [31],
-      knowledgePoints: [{ id: 31, name: '主旨大意题' }],
-      tags: ['虚拟语气', '语法'],
-      reviewCount: 1,
-      lastReviewDate: '2026-06-03',
-      nextReviewDate: '2026-06-05',
-      createdAt: '2026-06-01',
-      updatedAt: '2026-06-03',
-    },
-    {
-      id: 3,
-      imageUrl: null,
-      ocrText: '辩证唯物主义认为，认识的本质是（ ）。\nA. 主体对客体的能动反映\nB. 主体对客体的直观摹写\nC. 主体对客体的先验建构\nD. 主体对客体的信息加工',
-      subject: 'POLITICS',
-      errorReason: 'CONCEPT',
-      notes: '认识的本质是主体对客体的能动反映，这是马克思主义认识论的基本观点。\n\nA选项正确。B是旧唯物主义观点，C是唯心主义观点，D是认知心理学的表述。',
-      masteryLevel: 'NONE',
-      knowledgePointIds: [42],
-      knowledgePoints: [{ id: 42, name: '认识论' }],
-      tags: ['认识论', '唯物论'],
-      reviewCount: 0,
-      lastReviewDate: null,
-      nextReviewDate: '2026-06-04',
-      createdAt: '2026-06-04',
-      updatedAt: '2026-06-04',
-    },
-    {
-      id: 4,
-      imageUrl: null,
-      ocrText: '二叉树的先序遍历序列为 ABDCEGF，中序遍历序列为 BDAGECF，则后序遍历序列为？',
-      subject: 'MAJOR',
-      errorReason: 'CONCEPT',
-      notes: '重建二叉树步骤：\n1. 从先序知 A 为根\n2. 中序中 A 左侧为左子树(B,D)，右侧为右子树(G,E,C,F)\n3. 递归构建后得到后序序列',
-      masteryLevel: 'LOW',
-      knowledgePointIds: [52],
-      knowledgePoints: [{ id: 52, name: '树与二叉树' }],
-      tags: ['二叉树', '遍历'],
-      reviewCount: 3,
-      lastReviewDate: '2026-06-01',
-      nextReviewDate: '2026-06-08',
-      createdAt: '2026-05-20',
-      updatedAt: '2026-06-01',
-    },
-  ]
-  return mockQuestions.find((q) => q.id === id) || null
 }
 
 onMounted(() => {

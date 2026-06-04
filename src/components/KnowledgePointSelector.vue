@@ -98,26 +98,26 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { Search, Check, ChevronRight, X } from 'lucide-vue-next'
+import { getKnowledgePointTree } from '@/api/mistake'
+import type { KnowledgePointVO } from '@/types/mistake'
 
 const props = defineProps({
   modelValue: {
-    type: Array,
+    type: Array as () => number[],
     default: () => [],
   },
 })
 
 const emit = defineEmits(['update:modelValue'])
 
-const points = ref([])
+const points = ref<KnowledgePointVO[]>([])
 const loading = ref(true)
 const searchQuery = ref('')
-const expandedIds = ref(new Set())
-const selectedPoints = ref([...props.modelValue])
-
-const getToken = () => localStorage.getItem('token')
+const expandedIds = ref(new Set<number>())
+const selectedPoints = ref<number[]>([...props.modelValue])
 
 const filteredPoints = computed(() => {
   if (!searchQuery.value.trim()) return points.value
@@ -135,11 +135,11 @@ const filteredPoints = computed(() => {
     })
 })
 
-function isSelected(id) {
+function isSelected(id: number) {
   return selectedPoints.value.includes(id)
 }
 
-function toggleSelect(id) {
+function toggleSelect(id: number) {
   const idx = selectedPoints.value.indexOf(id)
   if (idx >= 0) {
     selectedPoints.value.splice(idx, 1)
@@ -149,7 +149,7 @@ function toggleSelect(id) {
   emit('update:modelValue', [...selectedPoints.value])
 }
 
-function toggleExpand(id) {
+function toggleExpand(id: number) {
   if (expandedIds.value.has(id)) {
     expandedIds.value.delete(id)
   } else {
@@ -157,7 +157,7 @@ function toggleExpand(id) {
   }
 }
 
-function getPointName(id) {
+function getPointName(id: number) {
   for (const p of points.value) {
     if (p.id === id) return p.name
     if (p.children) {
@@ -170,95 +170,15 @@ function getPointName(id) {
 
 onMounted(async () => {
   try {
-    const token = getToken()
-    const resp = await fetch('/api/knowledge-points', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = await resp.json()
+    const result = await getKnowledgePointTree()
     if (result.code === 200 && result.data) {
       points.value = result.data
     }
   } catch (err) {
     console.error('加载知识点失败:', err)
-    // 加载失败时使用 mock 数据
-    points.value = getMockPoints()
+    points.value = []
   } finally {
     loading.value = false
   }
 })
-
-function getMockPoints() {
-  return [
-    {
-      id: 1,
-      name: '高等数学',
-      subject: '数学',
-      children: [
-        { id: 11, name: '函数极限与连续', subject: '数学' },
-        { id: 12, name: '导数与微分', subject: '数学' },
-        { id: 13, name: '不定积分', subject: '数学' },
-        { id: 14, name: '定积分', subject: '数学' },
-        { id: 15, name: '微分方程', subject: '数学' },
-        { id: 16, name: '多元函数微分', subject: '数学' },
-      ],
-    },
-    {
-      id: 2,
-      name: '线性代数',
-      subject: '数学',
-      children: [
-        { id: 21, name: '行列式', subject: '数学' },
-        { id: 22, name: '矩阵', subject: '数学' },
-        { id: 23, name: '向量与线性方程组', subject: '数学' },
-        { id: 24, name: '特征值与特征向量', subject: '数学' },
-        { id: 25, name: '二次型', subject: '数学' },
-      ],
-    },
-    {
-      id: 3,
-      name: '英语阅读理解',
-      subject: '英语',
-      children: [
-        { id: 31, name: '主旨大意题', subject: '英语' },
-        { id: 32, name: '细节理解题', subject: '英语' },
-        { id: 33, name: '推理判断题', subject: '英语' },
-        { id: 34, name: '词义猜测题', subject: '英语' },
-      ],
-    },
-    {
-      id: 4,
-      name: '马克思主义基本原理',
-      subject: '政治',
-      children: [
-        { id: 41, name: '唯物辩证法', subject: '政治' },
-        { id: 42, name: '认识论', subject: '政治' },
-        { id: 43, name: '历史唯物主义', subject: '政治' },
-        { id: 44, name: '政治经济学', subject: '政治' },
-      ],
-    },
-    {
-      id: 5,
-      name: '数据结构',
-      subject: '专业课',
-      children: [
-        { id: 51, name: '线性表', subject: '专业课' },
-        { id: 52, name: '树与二叉树', subject: '专业课' },
-        { id: 53, name: '图', subject: '专业课' },
-        { id: 54, name: '查找', subject: '专业课' },
-        { id: 55, name: '排序', subject: '专业课' },
-      ],
-    },
-    {
-      id: 6,
-      name: '计算机网络',
-      subject: '专业课',
-      children: [
-        { id: 61, name: 'OSI模型', subject: '专业课' },
-        { id: 62, name: 'TCP/IP协议', subject: '专业课' },
-        { id: 63, name: 'HTTP协议', subject: '专业课' },
-        { id: 64, name: '网络安全', subject: '专业课' },
-      ],
-    },
-  ]
-}
 </script>

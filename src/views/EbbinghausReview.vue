@@ -90,20 +90,20 @@
           <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">艾宾浩斯遗忘曲线</h3>
           <div class="flex items-end gap-3 h-32">
             <div
-              v-for="(interval, index) in intervals"
+              v-for="(bar, index) in stageBars"
               :key="index"
               class="flex-1 flex flex-col items-center gap-1"
             >
               <div class="text-xs font-medium text-zinc-400">
-                {{ interval.count }}
+                {{ bar.count }}
               </div>
               <div
                 class="w-full rounded-t-lg transition-all duration-500"
                 :class="barColor(index)"
-                :style="{ height: `${getBarHeight(interval.count)}%` }"
+                :style="{ height: `${getBarHeight(bar.count)}%` }"
               />
               <div class="text-xs text-zinc-400">
-                {{ interval.label }}
+                {{ bar.stageText }}
               </div>
             </div>
           </div>
@@ -118,7 +118,7 @@
             <button @click="prevMonth" class="p-1 hover:bg-zinc-100 rounded-lg transition-colors">
               <ChevronLeft :size="18" class="text-zinc-500" />
             </button>
-            <h3 class="text-sm font-semibold text-zinc-700">{{ calendarMonth }}</h3>
+            <h3 class="text-sm font-semibold text-zinc-700">{{ calendarMonthLabel }}</h3>
             <button @click="nextMonth" class="p-1 hover:bg-zinc-100 rounded-lg transition-colors">
               <ChevronRight :size="18" class="text-zinc-500" />
             </button>
@@ -131,16 +131,19 @@
           </div>
           <!-- Calendar Grid -->
           <div class="grid grid-cols-7 gap-1">
-            <div
-              v-for="(day, idx) in calendarDays"
-              :key="idx"
-              @click="day.count > 0 && selectCalendarDay(day.date)"
-              class="aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-all cursor-pointer"
-              :class="calendarDayClass(day)"
-            >
-              <span>{{ day.dayNum }}</span>
-              <div v-if="day.count > 0" class="w-1.5 h-1.5 rounded-full mt-0.5" :class="day.isToday ? 'bg-white' : 'bg-zinc-900'" />
-            </div>
+            <template v-for="(day, idx) in calendarDays" :key="idx">
+              <div v-if="!day.day"
+                class="aspect-square"
+              />
+              <div v-else
+                @click="day.count > 0 && selectCalendarDay(formatDayDate(day.day))"
+                class="aspect-square flex flex-col items-center justify-center rounded-lg text-sm transition-all cursor-pointer"
+                :class="calendarDayClass(day)"
+              >
+                <span>{{ day.day }}</span>
+                <div v-if="day.count > 0" class="w-1.5 h-1.5 rounded-full mt-0.5" :class="day.isToday ? 'bg-white' : 'bg-zinc-900'" />
+              </div>
+            </template>
           </div>
           <!-- Selected day tasks -->
           <div v-if="selectedDayItems.length > 0" class="mt-4 pt-4 border-t border-zinc-100">
@@ -157,7 +160,7 @@
                 <div class="w-8 h-8 rounded-lg bg-zinc-100 flex items-center justify-center flex-shrink-0">
                   <FileText :size="14" class="text-zinc-400" />
                 </div>
-                <p class="text-sm text-zinc-600 truncate flex-1">{{ item.ocrText }}</p>
+                <p class="text-sm text-zinc-600 truncate flex-1">{{ item.questionContent }}</p>
                 <MasteryBadge :level="item.masteryLevel" />
               </div>
             </div>
@@ -179,7 +182,7 @@
               <div class="flex gap-3">
                 <!-- Checkbox -->
                 <button
-                  @click.stop="markReviewed(item)"
+                  @click.stop="openReviewDialog(item)"
                   class="w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all active:scale-90"
                   :class="reviewedIds.has(item.id)
                     ? 'bg-green-500 border-green-500'
@@ -194,7 +197,7 @@
                     class="text-sm text-zinc-700 line-clamp-2 mb-2"
                     :class="{ 'line-through text-zinc-400': reviewedIds.has(item.id) }"
                   >
-                    {{ item.ocrText || '无文本内容' }}
+                    {{ item.questionContent || '无文本内容' }}
                   </p>
                   <div class="flex flex-wrap items-center gap-2">
                     <SubjectIcon :subject="item.subject" />
@@ -208,6 +211,44 @@
                     </span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ebbinghaus Stats Panel -->
+        <div v-if="ebbinghausStats" class="bg-white border border-zinc-200 rounded-2xl p-6 mb-6 animate-fade-in-up animation-delay-300">
+          <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-4">掌握度分布</h3>
+          <div class="flex items-end gap-2 h-24 mb-6">
+            <div
+              v-for="(item, idx) in ebbinghausStats.masteryDistribution || []"
+              :key="idx"
+              class="flex-1 flex flex-col items-center gap-1"
+            >
+              <div class="text-xs text-zinc-400">{{ item.count }}</div>
+              <div
+                class="w-full rounded-t bg-zinc-900 transition-all"
+                :style="{ height: `${getBarHeight(item.count)}%`, opacity: 0.3 + idx * 0.15 }"
+              />
+              <div class="text-xs text-zinc-400">{{ item.range }}</div>
+            </div>
+          </div>
+
+          <!-- Accuracy Trend -->
+          <div v-if="ebbinghausStats.dailyAccuracyTrend?.length" class="mt-6 pt-4 border-t border-zinc-100">
+            <h3 class="text-sm font-semibold text-zinc-500 uppercase tracking-wide mb-3">近期正确率趋势</h3>
+            <div class="flex items-end gap-1 h-20">
+              <div
+                v-for="(day, idx) in ebbinghausStats.dailyAccuracyTrend.slice(-14)"
+                :key="idx"
+                class="flex-1 flex flex-col items-center gap-0.5"
+                :title="`${day.date}: ${day.totalReviewed > 0 ? Math.round((day.correct / day.totalReviewed) * 100) : 0}%`"
+              >
+                <div
+                  class="w-full rounded-t transition-all"
+                  :class="day.totalReviewed > 0 ? 'bg-green-500' : 'bg-zinc-200'"
+                  :style="{ height: `${day.totalReviewed > 0 ? Math.max((day.correct / day.totalReviewed) * 100, 4) : 2}%` }"
+                />
               </div>
             </div>
           </div>
@@ -230,10 +271,78 @@
         </div>
       </template>
     </main>
+
+    <!-- Review Dialog -->
+    <Teleport to="body">
+      <transition name="modal">
+        <div
+          v-if="showReviewDialog"
+          class="fixed inset-0 z-[100] bg-black/40 flex items-center justify-center p-4"
+          @click.self="showReviewDialog = false"
+        >
+          <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" @click.stop>
+            <h3 class="text-lg font-bold text-zinc-900 text-center mb-4">完成复习</h3>
+
+            <div class="mb-5">
+              <label class="block text-sm text-zinc-600 mb-2">
+                掌握程度: <span class="font-semibold text-zinc-900">{{ reviewMastery }}%</span>
+              </label>
+              <input
+                v-model="reviewMastery"
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                class="w-full accent-zinc-900"
+              />
+            </div>
+
+            <div class="mb-6">
+              <label class="block text-sm text-zinc-600 mb-2">作答结果</label>
+              <div class="flex gap-2">
+                <button
+                  @click="reviewIsCorrect = 1"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all"
+                  :class="reviewIsCorrect === 1
+                    ? 'bg-green-50 text-green-700 border-green-300'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-green-300'"
+                >
+                  ✓ 答对了
+                </button>
+                <button
+                  @click="reviewIsCorrect = 0"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all"
+                  :class="reviewIsCorrect === 0
+                    ? 'bg-red-50 text-red-700 border-red-300'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-red-300'"
+                >
+                  ✗ 没答对
+                </button>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button
+                @click="showReviewDialog = false"
+                class="flex-1 py-2.5 rounded-xl text-sm font-medium border border-zinc-200 text-zinc-600 hover:bg-zinc-50 transition-all"
+              >
+                取消
+              </button>
+              <button
+                @click="confirmReview"
+                class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 transition-all active:scale-95"
+              >
+                确认完成
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -244,140 +353,181 @@ import SubjectIcon from '@/components/SubjectIcon.vue'
 import MasteryBadge from '@/components/MasteryBadge.vue'
 import { formatDaysSince, EBBINGHAUS_INTERVALS } from '@/utils/ebbinghaus'
 import { exportQuestionsToPdf } from '@/utils/pdf-export'
+import {
+  getTodayReview, getCalendar, getCalendarDayNotes,
+  getEbbinghausStats, completeReview,
+} from '@/api/mistake'
+import type { ReviewTaskDto, CalendarDayDto } from '@/types/mistake'
 
 const router = useRouter()
-const getToken = () => localStorage.getItem('token')
 
 const loading = ref(true)
-const todayItems = ref([])
-const reviewedIds = ref(new Set())
+const todayItems = ref<ReviewTaskDto[]>([])
+const reviewedIds = ref(new Set<number>())
 const reviewedToday = ref(0)
 const showCalendar = ref(false)
-const calendarMonthOffset = ref(0)
+const calendarYear = ref(new Date().getFullYear())
+const calendarMonth = ref(new Date().getMonth() + 1)
+const calendarDays = ref<CalendarDayDto[]>([])
 const selectedDayDate = ref('')
-const selectedDayItems = ref([])
+const selectedDayItems = ref<ReviewTaskDto[]>([])
+const loadingDayItems = ref(false)
+
+// Ebbinghaus stats
+const ebbinghausStats = ref<any>(null)
+
+// Review dialog
+const showReviewDialog = ref(false)
+const reviewingItem = ref<ReviewTaskDto | null>(null)
+const reviewMastery = ref(60)
+const reviewIsCorrect = ref<0 | 1>(1)
 
 const weekDays = ['日', '一', '二', '三', '四', '五', '六']
 
-const intervals = computed(() => {
+const calendarMonthLabel = computed(() => {
+  return `${calendarYear.value}年${calendarMonth.value}月`
+})
+
+// Ebbinghaus stage distribution for bar chart
+const stageBars = computed(() => {
+  if (ebbinghausStats.value?.stageDistribution) {
+    return ebbinghausStats.value.stageDistribution
+  }
+  // Fallback: compute from todayItems
   const counts = new Array(EBBINGHAUS_INTERVALS.length).fill(0)
   todayItems.value.forEach((item) => {
-    const idx = Math.min(item.reviewCount, EBBINGHAUS_INTERVALS.length - 1)
+    const idx = Math.min(item.reviewCount || 0, EBBINGHAUS_INTERVALS.length - 1)
     counts[idx]++
   })
   return EBBINGHAUS_INTERVALS.map((days, i) => ({
-    days,
-    label: `${days}天`,
+    stage: i + 1,
+    stageText: `${days}天`,
+    intervalDays: days,
     count: counts[i],
+    avgMastery: 0,
   }))
 })
 
-const calendarMonth = computed(() => {
-  const now = new Date()
-  now.setMonth(now.getMonth() + calendarMonthOffset.value)
-  return now.toLocaleDateString('zh-CN', { year: 'numeric', month: 'long' })
-})
-
-const calendarDays = computed(() => {
-  const now = new Date()
-  now.setMonth(now.getMonth() + calendarMonthOffset.value)
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = new Date().toISOString().split('T')[0]
-
-  const days = []
-  // Padding for days before 1st
-  for (let i = 0; i < firstDay; i++) {
-    days.push({ dayNum: '', date: '', count: 0, isToday: false })
-  }
-  // Actual days
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-    const count = todayItems.value.filter((q) => q.nextReviewDate === dateStr).length
-    days.push({
-      dayNum: d,
-      date: dateStr,
-      count,
-      isToday: dateStr === today,
-    })
-  }
-  return days
-})
-
-function getBarHeight(count) {
-  const max = Math.max(...intervals.value.map((i) => i.count), 1)
+function getBarHeight(count: number) {
+  const max = Math.max(...stageBars.value.map((i: any) => i.count || 0), 1)
   return Math.max((count / max) * 100, 4)
 }
 
-function barColor(index) {
+function barColor(index: number) {
   const colors = [
-    'bg-red-400',
-    'bg-orange-400',
-    'bg-amber-400',
-    'bg-blue-400',
-    'bg-green-400',
-    'bg-emerald-500',
+    'bg-red-400', 'bg-orange-400', 'bg-amber-400',
+    'bg-blue-400', 'bg-green-400', 'bg-emerald-500',
   ]
   return colors[index] || 'bg-zinc-400'
 }
 
-function calendarDayClass(day) {
-  if (!day.dayNum) return 'cursor-default'
+function calendarDayClass(day: CalendarDayDto) {
+  if (!day.day) return 'cursor-default opacity-0'
   if (day.isToday) return 'bg-zinc-900 text-white rounded-full font-semibold'
   if (day.count > 0) return 'bg-zinc-100 hover:bg-zinc-200 font-medium'
   return 'hover:bg-zinc-50 text-zinc-500'
 }
 
-function selectCalendarDay(date) {
+function formatDayDate(day: number): string {
+  const m = String(calendarMonth.value).padStart(2, '0')
+  const d = String(day).padStart(2, '0')
+  return `${calendarYear.value}-${m}-${d}`
+}
+
+async function selectCalendarDay(date: string) {
   selectedDayDate.value = date
-  selectedDayItems.value = todayItems.value.filter((q) => q.nextReviewDate === date)
+  loadingDayItems.value = true
+  try {
+    const result = await getCalendarDayNotes(date, { size: 50 })
+    if (result.code === 200 && result.data) {
+      selectedDayItems.value = result.data.records || []
+    }
+  } catch {
+    selectedDayItems.value = []
+  }
+  loadingDayItems.value = false
 }
 
 function prevMonth() {
-  calendarMonthOffset.value--
+  if (calendarMonth.value === 1) {
+    calendarYear.value--
+    calendarMonth.value = 12
+  } else {
+    calendarMonth.value--
+  }
+  fetchCalendar()
 }
 
 function nextMonth() {
-  calendarMonthOffset.value++
+  if (calendarMonth.value === 12) {
+    calendarYear.value++
+    calendarMonth.value = 1
+  } else {
+    calendarMonth.value++
+  }
+  fetchCalendar()
+}
+
+async function fetchCalendar() {
+  try {
+    const result = await getCalendar(calendarYear.value, calendarMonth.value)
+    if (result.code === 200 && result.data?.days) {
+      calendarDays.value = result.data.days
+    }
+  } catch {
+    calendarDays.value = []
+  }
 }
 
 async function fetchTodayItems() {
   try {
-    const token = getToken()
-    const resp = await fetch('/api/review-plans/today', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = await resp.json()
+    const result = await getTodayReview({ size: 50 })
     if (result.code === 200 && result.data) {
-      todayItems.value = result.data.records || result.data || []
+      todayItems.value = result.data.records || []
     }
   } catch (err) {
     console.error('获取复习计划失败:', err)
-    // Use mock data
-    todayItems.value = getMockTodayItems()
+    todayItems.value = []
   }
 }
 
-async function markReviewed(item) {
-  if (reviewedIds.value.has(item.id)) return
+async function fetchStats() {
+  try {
+    const result = await getEbbinghausStats(30)
+    if (result.code === 200 && result.data) {
+      ebbinghausStats.value = result.data
+    }
+  } catch {
+    // 统计可选
+  }
+}
 
-  reviewedIds.value.add(item.id)
+function openReviewDialog(item: ReviewTaskDto) {
+  if (reviewedIds.value.has(item.noteId)) return
+  reviewingItem.value = item
+  reviewMastery.value = Math.max((item.masteryLevel || 0) + 10, 30)
+  reviewIsCorrect.value = 1
+  showReviewDialog.value = true
+}
+
+async function confirmReview() {
+  if (!reviewingItem.value) return
+  const item = reviewingItem.value
+  showReviewDialog.value = false
+
+  reviewedIds.value.add(item.noteId)
   reviewedToday.value++
 
   try {
-    const token = getToken()
-    await fetch(`/api/review-plans/${item.id}/review`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
+    await completeReview(item.noteId, {
+      masteryAfter: reviewMastery.value,
+      isCorrect: reviewIsCorrect.value,
     })
   } catch (err) {
     console.error('标记复习失败:', err)
   }
+
+  reviewingItem.value = null
 }
 
 function goBack() {
@@ -388,76 +538,24 @@ function goToQuestions() {
   router.push('/questions')
 }
 
-function goToDetail(id) {
+function goToDetail(id: number) {
   router.push(`/questions/${id}`)
 }
 
 async function exportTodayList() {
   if (todayItems.value.length === 0) return
   await exportQuestionsToPdf(
-    todayItems.value,
-    `复习清单-${new Date().toLocaleDateString('zh-CN')}`
+    todayItems.value as any,
+    `复习清单-${new Date().toLocaleDateString('zh-CN')}`,
   )
 }
 
-function getMockTodayItems() {
-  return [
-    {
-      id: 1,
-      imageUrl: null,
-      ocrText: '设函数 f(x) = x³ - 3x + 1，求 f(x) 的极值点和极值。',
-      subject: 'MATH',
-      errorReason: 'CALCULATION',
-      notes: '求导后忘记令导数为0，直接代入了端点值。',
-      masteryLevel: 'LOW',
-      knowledgePointIds: [12],
-      knowledgePoints: [{ id: 12, name: '导数与微分' }],
-      tags: ['极值', '求导'],
-      reviewCount: 2,
-      lastReviewDate: '2026-06-02',
-      nextReviewDate: '2026-06-04',
-      createdAt: '2026-05-28',
-      updatedAt: '2026-06-02',
-    },
-    {
-      id: 3,
-      imageUrl: null,
-      ocrText: '辩证唯物主义认为，认识的本质是（ ）。\nA. 主体对客体的能动反映\nB. 主体对客体的直观摹写\nC. 主体对客体的先验建构\nD. 主体对客体的信息加工',
-      subject: 'POLITICS',
-      errorReason: 'CONCEPT',
-      notes: '认识的本质是主体对客体的能动反映。',
-      masteryLevel: 'NONE',
-      knowledgePointIds: [42],
-      knowledgePoints: [{ id: 42, name: '认识论' }],
-      tags: ['认识论'],
-      reviewCount: 0,
-      lastReviewDate: null,
-      nextReviewDate: '2026-06-04',
-      createdAt: '2026-06-04',
-      updatedAt: '2026-06-04',
-    },
-    {
-      id: 5,
-      imageUrl: null,
-      ocrText: '求不定积分 ∫(2x+1)eˣ dx',
-      subject: 'MATH',
-      errorReason: 'CALCULATION',
-      notes: '使用分部积分法。',
-      masteryLevel: 'MEDIUM',
-      knowledgePointIds: [13],
-      knowledgePoints: [{ id: 13, name: '不定积分' }],
-      tags: ['积分'],
-      reviewCount: 2,
-      lastReviewDate: '2026-06-03',
-      nextReviewDate: '2026-06-04',
-      createdAt: '2026-05-25',
-      updatedAt: '2026-06-03',
-    },
-  ]
-}
-
 onMounted(async () => {
-  await fetchTodayItems()
+  await Promise.all([
+    fetchTodayItems(),
+    fetchCalendar(),
+    fetchStats(),
+  ])
   loading.value = false
 })
 </script>

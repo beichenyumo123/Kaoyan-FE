@@ -187,7 +187,7 @@
               <!-- Content -->
               <div class="flex-1 min-w-0">
                 <p class="text-sm text-zinc-700 line-clamp-2 mb-2 leading-relaxed">
-                  {{ question.ocrText || '未识别文本内容' }}
+                  {{ question.questionContent || '未识别文本内容' }}
                 </p>
                 <div class="flex flex-wrap items-center gap-1.5">
                   <SubjectIcon :subject="question.subject" />
@@ -252,7 +252,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -262,17 +262,22 @@ import {
 import SubjectIcon from '@/components/SubjectIcon.vue'
 import MasteryBadge from '@/components/MasteryBadge.vue'
 import { formatDaysSince } from '@/utils/ebbinghaus'
+import { toMistakeNoteVO } from '@/utils/adapters'
+import {
+  getNotes, getStats, getTodayReview, getUnreadCount,
+} from '@/api/mistake'
+import type { MistakeNoteVO } from '@/types/mistake'
 
 const router = useRouter()
-const getToken = () => localStorage.getItem('token')
 
 const loading = ref(true)
-const questions = ref([])
-const stats = ref({ total: 0, todayReview: 0, weekReview: 0 })
+const questions = ref<MistakeNoteVO[]>([])
+const stats = ref({ totalNotes: 0, todayReviewCount: 0, reviewedToday: 0, avgMastery: 0 })
 const reviewCount = ref(0)
+const unreadCount = ref(0)
 const page = ref(1)
 const totalPages = ref(1)
-const viewMode = ref('grid')
+const viewMode = ref<'grid' | 'list'>('grid')
 
 // Filters
 const filterSubject = ref('')
@@ -281,9 +286,9 @@ const searchQuery = ref('')
 const showReviewOnly = ref(false)
 
 const masteryRate = computed(() => {
-  if (stats.value.total === 0) return 0
+  if (questions.value.length === 0) return 0
   const highCount = questions.value.filter((q) => q.masteryLevel === 'HIGH').length
-  return Math.round((highCount / stats.value.total) * 100)
+  return Math.round((highCount / questions.value.length) * 100)
 })
 
 const filteredQuestions = computed(() => {
@@ -306,8 +311,8 @@ const filteredQuestions = computed(() => {
     const q = searchQuery.value.toLowerCase()
     result = result.filter(
       (item) =>
-        item.ocrText.toLowerCase().includes(q) ||
-        item.notes?.toLowerCase().includes(q) ||
+        item.questionContent.toLowerCase().includes(q) ||
+        (item.answer || '').toLowerCase().includes(q) ||
         item.tags?.some((t) => t.toLowerCase().includes(q))
     )
   }
@@ -315,7 +320,7 @@ const filteredQuestions = computed(() => {
   return result
 })
 
-function isDueToday(dateStr) {
+function isDueToday(dateStr: string | null) {
   if (!dateStr) return false
   return dateStr <= new Date().toISOString().split('T')[0]
 }
@@ -328,7 +333,7 @@ function goToAdd() {
   router.push('/questions/add')
 }
 
-function goToDetail(id) {
+function goToDetail(id: number) {
   router.push(`/questions/${id}`)
 }
 
@@ -338,188 +343,67 @@ function goToReview() {
 
 async function fetchStats() {
   try {
-    const token = getToken()
-    const resp = await fetch('/api/questions/stats', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = await resp.json()
+    const result = await getStats()
     if (result.code === 200 && result.data) {
       stats.value = result.data
     }
   } catch (err) {
     console.error('获取统计失败:', err)
-    // Mock stats from local data
-    const qs = questions.value
-    const today = new Date().toISOString().split('T')[0]
-    stats.value = {
-      total: qs.length,
-      todayReview: qs.filter((q) => q.nextReviewDate && q.nextReviewDate <= today).length,
-      weekReview: qs.filter((q) => {
-        if (!q.nextReviewDate) return false
-        const nd = new Date(q.nextReviewDate)
-        const weekLater = new Date()
-        weekLater.setDate(weekLater.getDate() + 7)
-        return nd <= weekLater
-      }).length,
-    }
   }
 }
 
 async function fetchQuestions() {
   try {
-    const token = getToken()
-    const params = new URLSearchParams({
-      page: page.value.toString(),
-      size: '20',
+    const result = await getNotes({
+      page: page.value,
+      size: 20,
+      subject: filterSubject.value || undefined,
     })
-    if (filterSubject.value) params.append('subject', filterSubject.value)
-    if (filterMastery.value) params.append('masteryLevel', filterMastery.value)
-
-    const resp = await fetch(`/api/questions?${params}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = await resp.json()
     if (result.code === 200 && result.data) {
-      questions.value = result.data.records || result.data
+      questions.value = (result.data.records || []).map((dto) => toMistakeNoteVO(dto))
       totalPages.value = result.data.pages || 1
     }
   } catch (err) {
     console.error('获取错题列表失败:', err)
-    // Use mock data when API is not available
-    questions.value = getMockQuestions()
-    totalPages.value = 1
+    questions.value = []
+    totalPages.value = 0
   }
 }
 
 async function fetchReviewCount() {
   try {
-    const token = getToken()
-    const resp = await fetch('/api/review-plans/today', {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-    const result = await resp.json()
+    const result = await getTodayReview()
     if (result.code === 200 && result.data) {
-      reviewCount.value = result.data.length || result.data.count || 0
+      const records = result.data.records || result.data as any
+      reviewCount.value = Array.isArray(records) ? records.length : (records.total || 0)
     }
   } catch (err) {
     console.error('获取复习计划失败:', err)
   }
 }
 
-watch([filterSubject, filterMastery, page], () => {
+async function fetchUnreadCount() {
+  try {
+    const result = await getUnreadCount()
+    if (result.code === 200 && result.data) {
+      unreadCount.value = result.data.count ?? 0
+    }
+  } catch {
+    // 通知功能可选，静默失败
+  }
+}
+
+watch([filterSubject, page], () => {
   fetchQuestions()
 })
 
 onMounted(async () => {
-  await Promise.all([fetchQuestions(), fetchReviewCount()])
+  await Promise.all([
+    fetchQuestions(),
+    fetchReviewCount(),
+    fetchUnreadCount(),
+  ])
   await fetchStats()
   loading.value = false
 })
-
-function getMockQuestions() {
-  return [
-    {
-      id: 1,
-      imageUrl: null,
-      ocrText: '设函数 f(x) = x³ - 3x + 1，求 f(x) 的极值点和极值。',
-      subject: 'MATH',
-      errorReason: 'CALCULATION',
-      notes: '求导后忘记令导数为0，直接代入了端点值。',
-      masteryLevel: 'LOW',
-      knowledgePointIds: [12],
-      knowledgePoints: [{ id: 12, name: '导数与微分' }],
-      tags: ['极值', '求导'],
-      reviewCount: 2,
-      lastReviewDate: '2026-06-02',
-      nextReviewDate: '2026-06-06',
-      createdAt: '2026-05-28',
-      updatedAt: '2026-06-02',
-    },
-    {
-      id: 2,
-      imageUrl: null,
-      ocrText: 'The professor required that we __ the report by Friday.\nA. hand in  B. handed in  C. would hand in  D. had handed in',
-      subject: 'ENGLISH',
-      errorReason: 'FORGET',
-      notes: 'require that + (should) do 虚拟语气，should可省略。',
-      masteryLevel: 'MEDIUM',
-      knowledgePointIds: [31],
-      knowledgePoints: [{ id: 31, name: '虚拟语气' }],
-      tags: ['虚拟语气', '语法'],
-      reviewCount: 1,
-      lastReviewDate: '2026-06-03',
-      nextReviewDate: '2026-06-05',
-      createdAt: '2026-06-01',
-      updatedAt: '2026-06-03',
-    },
-    {
-      id: 3,
-      imageUrl: null,
-      ocrText: '辩证唯物主义认为，认识的本质是（ ）。\nA. 主体对客体的能动反映\nB. 主体对客体的直观摹写\nC. 主体对客体的先验建构\nD. 主体对客体的信息加工',
-      subject: 'POLITICS',
-      errorReason: 'CONCEPT',
-      notes: '认识的本质是主体对客体的能动反映，这是马克思主义认识论的基本观点。',
-      masteryLevel: 'NONE',
-      knowledgePointIds: [42],
-      knowledgePoints: [{ id: 42, name: '认识论' }],
-      tags: ['认识论', '唯物论'],
-      reviewCount: 0,
-      lastReviewDate: null,
-      nextReviewDate: '2026-06-04',
-      createdAt: '2026-06-04',
-      updatedAt: '2026-06-04',
-    },
-    {
-      id: 4,
-      imageUrl: null,
-      ocrText: '二叉树的先序遍历序列为 ABDCEGF，中序遍历序列为 BDAGECF，则后序遍历序列为？',
-      subject: 'MAJOR',
-      errorReason: 'CONCEPT',
-      notes: '通过先序和中序重建二叉树，再进行后序遍历。',
-      masteryLevel: 'LOW',
-      knowledgePointIds: [52],
-      knowledgePoints: [{ id: 52, name: '树与二叉树' }],
-      tags: ['二叉树', '遍历'],
-      reviewCount: 3,
-      lastReviewDate: '2026-06-01',
-      nextReviewDate: '2026-06-08',
-      createdAt: '2026-05-20',
-      updatedAt: '2026-06-01',
-    },
-    {
-      id: 5,
-      imageUrl: null,
-      ocrText: '求不定积分 ∫(2x+1)eˣ dx',
-      subject: 'MATH',
-      errorReason: 'CALCULATION',
-      notes: '使用分部积分法：设 u=2x+1, dv=eˣdx',
-      masteryLevel: 'MEDIUM',
-      knowledgePointIds: [13],
-      knowledgePoints: [{ id: 13, name: '不定积分' }],
-      tags: ['积分', '分部积分法'],
-      reviewCount: 2,
-      lastReviewDate: '2026-06-03',
-      nextReviewDate: '2026-06-07',
-      createdAt: '2026-05-25',
-      updatedAt: '2026-06-03',
-    },
-    {
-      id: 6,
-      imageUrl: null,
-      ocrText: 'TCP三次握手过程中，SYN=1, ACK=1 出现在第几次握手？',
-      subject: 'MAJOR',
-      errorReason: 'FORGET',
-      notes: '第一次：SYN=1；第二次：SYN=1, ACK=1；第三次：ACK=1',
-      masteryLevel: 'HIGH',
-      knowledgePointIds: [62],
-      knowledgePoints: [{ id: 62, name: 'TCP/IP协议' }],
-      tags: ['TCP', '三次握手'],
-      reviewCount: 4,
-      lastReviewDate: '2026-05-28',
-      nextReviewDate: '2026-06-28',
-      createdAt: '2026-05-10',
-      updatedAt: '2026-05-28',
-    },
-  ]
-}
 </script>

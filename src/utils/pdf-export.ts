@@ -85,17 +85,17 @@ function createExportElement(questions: WrongQuestion[], title: string): HTMLEle
         </div>
         ` : ''}
 
-        ${q.ocrText ? `
+        ${(q.ocrText || (q as any).questionContent) ? `
         <div style="margin-bottom:10px;padding:12px;background:#f4f4f5;border-radius:8px;">
           <p style="font-weight:600;font-size:13px;color:#71717a;margin:0 0 4px;">📝 题目内容:</p>
-          <p style="font-size:14px;color:#3f3f46;margin:0;white-space:pre-wrap;">${q.ocrText}</p>
+          <p style="font-size:14px;color:#3f3f46;margin:0;white-space:pre-wrap;">${q.ocrText || (q as any).questionContent}</p>
         </div>
         ` : ''}
 
-        ${q.notes ? `
+        ${(q.notes || (q as any).answer) ? `
         <div style="margin-bottom:10px;">
           <p style="font-weight:600;font-size:13px;color:#71717a;margin:0 0 4px;">💡 备注:</p>
-          <p style="font-size:14px;color:#3f3f46;margin:0;white-space:pre-wrap;">${q.notes}</p>
+          <p style="font-size:14px;color:#3f3f46;margin:0;white-space:pre-wrap;">${q.notes || (q as any).answer}</p>
         </div>
         ` : ''}
 

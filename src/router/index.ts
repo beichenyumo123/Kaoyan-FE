@@ -76,23 +76,37 @@ const router = createRouter({
       path: '/questions',
       name: 'WrongQuestionBook',
       component: WrongQuestionBook,
+      meta: { requiresAuth: true },
     },
     {
       path: '/questions/add',
       name: 'AddWrongQuestion',
       component: AddWrongQuestion,
+      meta: { requiresAuth: true },
     },
     {
       path: '/questions/:id',
       name: 'WrongQuestionDetail',
       component: WrongQuestionDetail,
+      meta: { requiresAuth: true },
     },
     {
       path: '/review',
       name: 'EbbinghausReview',
       component: EbbinghausReview,
+      meta: { requiresAuth: true },
     },
   ],
+})
+
+// 路由守卫：需要登录的页面未登录则跳转到登录页
+router.beforeEach((to, _from, next) => {
+  const token = localStorage.getItem('token')
+  if (to.meta.requiresAuth && !token) {
+    next({ path: '/', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router
