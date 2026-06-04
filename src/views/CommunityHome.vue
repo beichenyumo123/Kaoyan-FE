@@ -173,7 +173,17 @@
             </nav>
           </div>
 
-          <div class="border-t border-zinc-200 pt-6">
+          <div class="border-t border-zinc-200 pt-6 space-y-3">
+            <!-- D 模块快捷入口 -->
+            <button
+              @click="goToExperienceSquare"
+              class="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 text-blue-700 hover:from-blue-100 hover:to-indigo-100 hover:shadow-sm transition-all duration-300 font-medium"
+            >
+              <GraduationCap class="w-4 h-4 text-blue-500" />
+              上岸经验广场
+              <ArrowRight class="w-3.5 h-3.5 ml-auto text-blue-400" />
+            </button>
+
             <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
               <h3 class="text-sm font-medium text-blue-900 mb-1">正在备考 408？</h3>
               <p class="text-xs text-blue-700 mb-3 leading-relaxed">
@@ -231,16 +241,24 @@
         </div>
 
         <!-- AI 学习摘要横幅 -->
-        <div v-if="aiSummary" class="bg-gradient-to-r from-indigo-50 to-emerald-50 rounded-2xl border border-indigo-100/80 p-4">
+        <div
+          v-if="aiSummary"
+          class="bg-gradient-to-r from-indigo-50 to-emerald-50 rounded-2xl border border-indigo-100/80 p-4"
+        >
           <div class="flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-4 flex-wrap">
               <div class="flex items-center gap-1.5 text-xs text-zinc-600">
                 <CheckSquare class="w-3.5 h-3.5 text-indigo-500" />
-                今日任务 <b class="text-zinc-900">{{ aiSummary.completedTasks }}/{{ aiSummary.totalTasks }}</b>
+                今日任务
+                <b class="text-zinc-900"
+                  >{{ aiSummary.completedTasks }}/{{ aiSummary.totalTasks }}</b
+                >
               </div>
               <div v-if="aiSummary.unreadCount > 0" class="flex items-center gap-1.5 text-xs">
                 <Bell class="w-3.5 h-3.5 text-rose-500" />
-                <span class="text-rose-600 font-medium">{{ aiSummary.unreadCount }} 条 AI 消息</span>
+                <span class="text-rose-600 font-medium"
+                  >{{ aiSummary.unreadCount }} 条 AI 消息</span
+                >
               </div>
               <div class="flex items-center gap-1.5 text-xs text-zinc-600">
                 <Flame class="w-3.5 h-3.5 text-orange-500" />
@@ -248,25 +266,41 @@
               </div>
             </div>
             <div class="flex items-center gap-3">
-              <button @click="$router.push('/ai/ask')" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
+              <button
+                @click="$router.push('/ai/ask')"
+                class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors"
+              >
                 AI 答疑 →
               </button>
-              <button @click="$router.push('/ai')" class="text-xs text-zinc-500 hover:text-zinc-700 transition-colors">
+              <button
+                @click="$router.push('/ai')"
+                class="text-xs text-zinc-500 hover:text-zinc-700 transition-colors"
+              >
                 学习中心
               </button>
             </div>
           </div>
-          <p v-if="aiSummary.todayTip" class="mt-2 text-xs text-zinc-500">💡 {{ aiSummary.todayTip }}</p>
+          <p v-if="aiSummary.todayTip" class="mt-2 text-xs text-zinc-500">
+            💡 {{ aiSummary.todayTip }}
+          </p>
         </div>
 
         <!-- AI 智能推荐 -->
-        <div v-if="recommendations.length > 0" class="bg-white rounded-2xl border border-zinc-200 p-4">
+        <div
+          v-if="recommendations.length > 0"
+          class="bg-white rounded-2xl border border-zinc-200 p-4"
+        >
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
               <Sparkles class="w-3.5 h-3.5 text-amber-500" />
               AI 推荐知识点
             </h3>
-            <button @click="recommendations = []" class="text-[10px] text-zinc-400 hover:text-zinc-600">关闭</button>
+            <button
+              @click="recommendations = []"
+              class="text-[10px] text-zinc-400 hover:text-zinc-600"
+            >
+              关闭
+            </button>
           </div>
           <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
             <button
@@ -275,10 +309,16 @@
               @click="$router.push('/ai/knowledge')"
               class="flex-shrink-0 bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-2 hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left"
             >
-              <p class="text-xs font-semibold text-zinc-800 truncate max-w-[160px]">{{ rec.title }}</p>
+              <p class="text-xs font-semibold text-zinc-800 truncate max-w-[160px]">
+                {{ rec.title }}
+              </p>
               <div class="flex items-center gap-1.5 mt-1">
-                <span class="text-[10px] px-1 py-0.5 bg-emerald-50 text-emerald-600 rounded">{{ rec.subject }}</span>
-                <span class="text-[10px] text-zinc-400 truncate max-w-[100px]">{{ rec.reason }}</span>
+                <span class="text-[10px] px-1 py-0.5 bg-emerald-50 text-emerald-600 rounded">{{
+                  rec.subject
+                }}</span>
+                <span class="text-[10px] text-zinc-400 truncate max-w-[100px]">{{
+                  rec.reason
+                }}</span>
               </div>
             </button>
           </div>
@@ -659,6 +699,8 @@ import {
   Flame,
   X,
   Bookmark,
+  GraduationCap,
+  ArrowRight,
   CheckSquare,
 } from 'lucide-vue-next'
 import router from '@/router'
@@ -1077,6 +1119,7 @@ const goToCreatePost = () => router.push('/create_post')
 const goToMessageCenter = () => router.push('/message')
 const goToAiDashboard = () => router.push('/ai')
 const goToGroupList = () => router.push('/groups')
+const goToExperienceSquare = () => router.push('/experience')
 </script>
 
 <style scoped>
