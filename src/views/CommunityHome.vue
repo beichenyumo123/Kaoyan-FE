@@ -46,6 +46,14 @@
           </button>
 
           <button
+            @click="goToQuestionBook"
+            class="text-zinc-500 hover:text-zinc-900 transition-all duration-300 relative hover:-translate-y-0.5"
+            title="错题本"
+          >
+            <BookOpen class="w-5 h-5" />
+          </button>
+
+          <button
             @click="goToMessageCenter"
             class="text-zinc-500 hover:text-zinc-900 transition-all duration-300 relative hover:-translate-y-0.5"
           >
@@ -981,6 +989,7 @@ const goToUserCenter = () => router.push('/user_center')
 const goToCreatePost = () => router.push('/create_post')
 const goToMessageCenter = () => router.push('/message')
 const goToGroupList = () => router.push('/groups')
+const goToQuestionBook = () => router.push('/questions')
 </script>
 
 <style scoped>
