@@ -260,6 +260,7 @@ import {
   User,
   MessageCircle,
 } from 'lucide-vue-next'
+import { request } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -369,6 +370,15 @@ const fetchSearchResults = async (keyword) => {
       } else {
         activeTab.value = 'posts'
       }
+
+      // 行为埋点：搜索
+      request('/api/ai/events', {
+        method: 'POST',
+        body: JSON.stringify({
+          eventType: 'SEARCH',
+          eventData: { keyword, resultCount: fetchedPosts.length + users.value.length },
+        }),
+      }).catch(() => {})
     }
   } catch (error) {
     console.error('搜索请求异常:', error)

@@ -429,6 +429,7 @@ import {
   UserPlus,
 } from 'lucide-vue-next'
 import { renderMarkdown } from '@/utils/markdown'
+import { request } from '@/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -466,6 +467,11 @@ onMounted(() => {
   if (currentPostId) {
     fetchPostDetail(currentPostId)
     fetchComments(currentPostId)
+    // 行为埋点：浏览帖子
+    request('/api/ai/events', {
+      method: 'POST',
+      body: JSON.stringify({ eventType: 'VIEW_POST', eventData: { postId: Number(currentPostId) } }),
+    }).catch(() => {})
   }
 })
 
@@ -718,6 +724,13 @@ const handleCollect = async () => {
     } else {
       // 成功则以后端返回的确切布尔值为准覆盖
       post.value.isCollected = result.data
+      // 行为埋点：收藏帖子（仅收藏时上报，取消不上报）
+      if (result.data === true) {
+        request('/api/ai/events', {
+          method: 'POST',
+          body: JSON.stringify({ eventType: 'COLLECT_POST', eventData: { postId: post.value.id } }),
+        }).catch(() => {})
+      }
     }
   } catch (error) {
     post.value.isCollected = originalStatus

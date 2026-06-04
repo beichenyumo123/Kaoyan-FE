@@ -230,6 +230,60 @@
           </button>
         </div>
 
+        <!-- AI 学习摘要横幅 -->
+        <div v-if="aiSummary" class="bg-gradient-to-r from-indigo-50 to-emerald-50 rounded-2xl border border-indigo-100/80 p-4">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-4 flex-wrap">
+              <div class="flex items-center gap-1.5 text-xs text-zinc-600">
+                <CheckSquare class="w-3.5 h-3.5 text-indigo-500" />
+                今日任务 <b class="text-zinc-900">{{ aiSummary.completedTasks }}/{{ aiSummary.totalTasks }}</b>
+              </div>
+              <div v-if="aiSummary.unreadCount > 0" class="flex items-center gap-1.5 text-xs">
+                <Bell class="w-3.5 h-3.5 text-rose-500" />
+                <span class="text-rose-600 font-medium">{{ aiSummary.unreadCount }} 条 AI 消息</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-zinc-600">
+                <Flame class="w-3.5 h-3.5 text-orange-500" />
+                连续 <b class="text-zinc-900">{{ aiSummary.streakDays }}</b> 天
+              </div>
+            </div>
+            <div class="flex items-center gap-3">
+              <button @click="$router.push('/ai/ask')" class="text-xs font-bold text-indigo-600 hover:text-indigo-700 transition-colors">
+                AI 答疑 →
+              </button>
+              <button @click="$router.push('/ai')" class="text-xs text-zinc-500 hover:text-zinc-700 transition-colors">
+                学习中心
+              </button>
+            </div>
+          </div>
+          <p v-if="aiSummary.todayTip" class="mt-2 text-xs text-zinc-500">💡 {{ aiSummary.todayTip }}</p>
+        </div>
+
+        <!-- AI 智能推荐 -->
+        <div v-if="recommendations.length > 0" class="bg-white rounded-2xl border border-zinc-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-zinc-900 flex items-center gap-1.5">
+              <Sparkles class="w-3.5 h-3.5 text-amber-500" />
+              AI 推荐知识点
+            </h3>
+            <button @click="recommendations = []" class="text-[10px] text-zinc-400 hover:text-zinc-600">关闭</button>
+          </div>
+          <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+            <button
+              v-for="rec in recommendations"
+              :key="rec.id"
+              @click="$router.push('/ai/knowledge')"
+              class="flex-shrink-0 bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-2 hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left"
+            >
+              <p class="text-xs font-semibold text-zinc-800 truncate max-w-[160px]">{{ rec.title }}</p>
+              <div class="flex items-center gap-1.5 mt-1">
+                <span class="text-[10px] px-1 py-0.5 bg-emerald-50 text-emerald-600 rounded">{{ rec.subject }}</span>
+                <span class="text-[10px] text-zinc-400 truncate max-w-[100px]">{{ rec.reason }}</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <transition name="feed" mode="out-in">
           <!-- 帖子列表加载状态 -->
           <div v-if="isLoadingPosts" key="skeleton" class="space-y-4 w-full">
@@ -605,9 +659,11 @@ import {
   Flame,
   X,
   Bookmark,
+  CheckSquare,
 } from 'lucide-vue-next'
 import router from '@/router'
 import { stripHtml } from '@/utils/markdown'
+import { request } from '@/api'
 
 // --- 基础状态数据 ---
 const currentUser = ref({})
@@ -644,6 +700,32 @@ const checkInForm = reactive({
 
 const getToken = () => localStorage.getItem('token')
 
+// --- AI 摘要与推荐 ---
+const aiSummary = ref(null)
+const recommendations = ref([])
+
+const fetchAiSummary = async () => {
+  try {
+    const res = await request('/api/ai/summary')
+    if (res.code === 200 && res.data) {
+      aiSummary.value = res.data
+    }
+  } catch (e) {
+    console.error('获取 AI 摘要失败:', e)
+  }
+}
+
+const fetchRecommendations = async () => {
+  try {
+    const res = await request('/api/ai/recommendations')
+    if (res.code === 200 && res.data?.knowledgePoints?.length > 0) {
+      recommendations.value = res.data.knowledgePoints
+    }
+  } catch (e) {
+    console.error('获取推荐失败:', e)
+  }
+}
+
 // --- 初始化 ---
 onMounted(async () => {
   await fetchCurrentUser()
@@ -657,6 +739,10 @@ onMounted(async () => {
   // 轮询未读消息
   await fetchUnreadCount()
   unreadTimer = setInterval(fetchUnreadCount, 30000)
+
+  // AI 摘要与推荐
+  fetchAiSummary()
+  fetchRecommendations()
 })
 
 onUnmounted(() => {

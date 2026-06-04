@@ -16,6 +16,22 @@
             多智能体陪伴舱
           </h1>
         </div>
+        <div class="flex items-center gap-2">
+          <button
+            @click="$router.push('/ai/knowledge')"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all"
+          >
+            <BookOpen class="w-3.5 h-3.5" />
+            知识库
+          </button>
+          <button
+            @click="$router.push('/ai/ask')"
+            class="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all"
+          >
+            <MessageCircle class="w-3.5 h-3.5" />
+            AI 答疑
+          </button>
+        </div>
       </div>
     </header>
 
@@ -23,7 +39,7 @@
       <!-- 快捷数据看板 -->
       <div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <p class="text-zinc-500 text-sm">基于教育学 RAG 与主动干预机制，由 4 大专业考研 Agent 为您保驾护航。</p>
+          <p class="text-zinc-500 text-sm">基于教育学 RAG 与主动干预机制，由 5 大专业考研 Agent 为您保驾护航。</p>
         </div>
         <div class="flex items-center gap-3 bg-white border border-zinc-200/80 px-4 py-2 rounded-2xl shadow-sm self-start">
           <div class="flex items-center gap-1 text-sm text-zinc-600">
@@ -82,8 +98,8 @@
           </div>
         </div>
 
-        <!-- 中：任务与实时干预流 (5 列) -->
-        <div class="lg:col-span-5 space-y-6">
+        <!-- 中：任务与实时干预流 (9 列) -->
+        <div class="lg:col-span-9 space-y-6">
           <!-- 今日 AI 规划清单 -->
           <div class="bg-white rounded-2xl border border-zinc-200/80 p-5 shadow-sm">
             <div class="flex items-center justify-between mb-4">
@@ -145,16 +161,17 @@
             <div v-else class="text-center py-8 bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200">
               <template v-if="hasCheckedIn">
                 <p class="text-xs text-zinc-400">今日已打卡，但 AI 任务尚未生成。</p>
-                <p class="text-[10px] text-zinc-400 mt-1">请确认后端 DeepSeek API 配置已就绪，或稍后刷新。</p>
+                <p class="text-[10px] text-zinc-400 mt-1">请稍后刷新，规划智能体正在为您定制任务。</p>
               </template>
               <template v-else>
-                <p class="text-xs text-zinc-400">今日还未打卡。打个卡试试吧！</p>
+                <p class="text-xs text-zinc-600 font-medium">请先打卡，AI 将为你规划今日任务</p>
+                <p class="text-[10px] text-zinc-400 mt-1">打卡后规划智能体会自动生成 3 条个性化学习任务</p>
                 <button
                   @click="$router.push('/community')"
-                  class="mt-3 inline-flex items-center text-xs font-bold text-zinc-950 border-b border-zinc-950 pb-0.5"
+                  class="mt-3 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-4 py-2 rounded-xl transition-colors"
                 >
                   去打卡广场
-                  <ChevronRight class="w-3 h-3 ml-0.5" />
+                  <ChevronRight class="w-3 h-3" />
                 </button>
               </template>
             </div>
@@ -167,14 +184,6 @@
                 <Bell class="w-4 h-4 text-rose-500" />
                 智能体主动干预 ({{ interventions.length }})
               </h2>
-              <button
-                @click="handleTriggerSupervisor"
-                :disabled="triggerLoading"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 text-white rounded-xl text-xs font-bold hover:bg-zinc-900 transition-all disabled:opacity-50"
-              >
-                <Play class="w-3 h-3 text-orange-400 fill-orange-400" />
-                模拟懈怠
-              </button>
             </div>
 
             <div v-if="loadingInterventions" class="space-y-3">
@@ -189,6 +198,8 @@
                 :class="
                   item.agentName === 'Psychology'
                     ? 'bg-rose-50/40 border-rose-100/80 text-rose-950'
+                    : item.agentName === 'Behavior'
+                    ? 'bg-blue-50/40 border-blue-100/80 text-blue-950'
                     : 'bg-amber-50/40 border-amber-100/80 text-amber-950'
                 "
               >
@@ -197,6 +208,10 @@
                     <span v-if="item.agentName === 'Psychology'" class="flex items-center gap-1">
                       <Heart class="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
                       心理师阿暖的温暖树洞
+                    </span>
+                    <span v-else-if="item.agentName === 'Behavior'" class="flex items-center gap-1">
+                      <BarChart3 class="w-3.5 h-3.5 text-blue-500" />
+                      行为分析师的洞察
                     </span>
                     <span v-else class="flex items-center gap-1">
                       <AlertTriangle class="w-3.5 h-3.5 text-amber-600" />
@@ -210,7 +225,11 @@
                 </p>
                 <div
                   class="mt-3 flex items-center justify-between border-t border-dashed pt-2.5"
-                  :class="item.agentName === 'Psychology' ? 'border-rose-100' : 'border-amber-100'"
+                  :class="
+                    item.agentName === 'Psychology' ? 'border-rose-100' :
+                    item.agentName === 'Behavior' ? 'border-blue-100' :
+                    'border-amber-100'
+                  "
                 >
                   <div class="text-[10px] text-zinc-400 truncate max-w-[70%]">
                     原因: {{ item.triggerReason }}
@@ -218,7 +237,11 @@
                   <button
                     @click="handleReadIntervention(item.id)"
                     class="text-[10px] font-bold px-2.5 py-1 bg-white border rounded-lg hover:bg-zinc-50 transition-colors"
-                    :class="item.agentName === 'Psychology' ? 'text-rose-600 border-rose-200' : 'text-amber-700 border-amber-200'"
+                    :class="
+                      item.agentName === 'Psychology' ? 'text-rose-600 border-rose-200' :
+                      item.agentName === 'Behavior' ? 'text-blue-600 border-blue-200' :
+                      'text-amber-700 border-amber-200'
+                    "
                   >
                     采纳建议并归档
                   </button>
@@ -232,48 +255,51 @@
           </div>
         </div>
 
-        <!-- 右：周报告看板 (4 列) -->
-        <div class="lg:col-span-4 space-y-6">
-          <div class="bg-white rounded-2xl border border-zinc-200/80 p-5 shadow-sm h-full flex flex-col min-h-[500px]">
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="text-sm font-bold text-zinc-900 flex items-center gap-2">
-                <LineChart class="w-4 h-4 text-emerald-500" />
-                AI 学情透视周报
-              </h2>
-              <button
-                @click="fetchWeeklyReport"
-                :disabled="loadingReport"
-                class="text-xs font-bold text-zinc-950 bg-zinc-100 hover:bg-zinc-200 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-              >
-                <Sparkles class="w-3.5 h-3.5 text-amber-500" />
-                {{ reportHtml ? '重构学情' : '即刻生成' }}
-              </button>
-            </div>
+      </div>
 
-            <div v-if="loadingReport" class="flex-1 flex flex-col justify-center items-center py-12 space-y-4">
-              <div class="relative w-16 h-16">
-                <div class="absolute inset-0 rounded-full border-4 border-zinc-100"></div>
-                <div class="absolute inset-0 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
-                <span class="absolute inset-0 flex items-center justify-center text-xl">🔮</span>
-              </div>
-              <div class="text-center">
-                <p class="text-xs font-bold text-zinc-900">正在聚合您的 7 天备战历史...</p>
-                <p class="text-[10px] text-zinc-400 mt-1">ReviewAgent 正在基于大模型解剖您的学习漏洞</p>
-              </div>
-            </div>
-
-            <div v-else-if="reportHtml" class="flex-1 overflow-y-auto max-h-[520px] pr-2 post-content text-xs" v-html="reportHtml">
-            </div>
-
-            <div v-else class="flex-1 flex flex-col justify-center items-center py-12 text-center bg-zinc-50/50 rounded-xl border border-dashed border-zinc-200">
-              <span class="text-3xl mb-3">📊</span>
-              <p class="text-xs font-semibold text-zinc-700">报告尚未计算</p>
-              <p class="text-[10px] text-zinc-400 mt-1 max-w-[200px] mx-auto">点击右上角按钮，镜言智能体会为您生成包含错题、弱项分析的综合备考报告。</p>
-            </div>
+      <!-- 底部快捷操作栏 -->
+      <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <button
+          @click="showReportModal = true"
+          class="bg-white rounded-2xl border border-zinc-200/80 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3 group"
+        >
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+            <LineChart class="w-5 h-5 text-emerald-500" />
           </div>
-        </div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-zinc-900">AI 学情周报</p>
+            <p class="text-[10px] text-zinc-400">查看本周及历史学习报告</p>
+          </div>
+        </button>
+        <button
+          @click="$router.push('/ai/ask')"
+          class="bg-white rounded-2xl border border-zinc-200/80 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3 group"
+        >
+          <div class="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+            <MessageCircle class="w-5 h-5 text-indigo-500" />
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-zinc-900">AI 答疑对话</p>
+            <p class="text-[10px] text-zinc-400">基于知识库的智能问答</p>
+          </div>
+        </button>
+        <button
+          @click="$router.push('/ai/knowledge')"
+          class="bg-white rounded-2xl border border-zinc-200/80 p-4 shadow-sm hover:shadow-md transition-all flex items-center gap-3 group"
+        >
+          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+            <BookOpen class="w-5 h-5 text-emerald-600" />
+          </div>
+          <div class="text-left">
+            <p class="text-xs font-bold text-zinc-900">考研知识库</p>
+            <p class="text-[10px] text-zinc-400">搜索知识点与考点</p>
+          </div>
+        </button>
       </div>
     </main>
+
+    <!-- 周报弹窗 -->
+    <WeeklyReportModal :visible="showReportModal" @close="showReportModal = false" />
   </div>
 </template>
 
@@ -282,23 +308,21 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Sparkles, Brain, CheckCircle2, AlertTriangle, Heart,
-  LineChart, RotateCcw, Flame, Play, Bell, ChevronRight,
+  LineChart, RotateCcw, Flame, Bell, ChevronRight,
   Calendar, Hourglass, CheckSquare, Square, ArrowLeft,
+  MessageCircle, BookOpen, BarChart3,
 } from 'lucide-vue-next'
-import { renderMarkdown } from '@/utils/markdown'
+import { request } from '@/api'
+import WeeklyReportModal from '@/components/WeeklyReportModal.vue'
 
 const router = useRouter()
 
-const getToken = () => localStorage.getItem('token')
-
 const loadingTasks = ref(false)
 const loadingInterventions = ref(false)
-const loadingReport = ref(false)
-const triggerLoading = ref(false)
+const showReportModal = ref(false)
 
 const tasks = ref([])
 const interventions = ref([])
-const reportHtml = ref('')
 
 const studyStats = ref({
   continuousDays: 0,
@@ -308,22 +332,29 @@ const studyStats = ref({
 
 const agents = ref([
   { id: 'planner',    name: '规划伴侣 · 小灵', role: '动态学习路线编排',   status: 'ONLINE',     desc: '正在优化您今日的复习节点...',       dotColor: 'bg-blue-500',                          avatar: '🤖' },
+  { id: 'tutor',      name: '答疑导师 · 博学', role: '基于知识库 RAG 答疑', status: 'ONLINE',     desc: '随时准备解答您的学科疑问...',       dotColor: 'bg-indigo-500',                        avatar: '📚' },
   { id: 'psychology', name: '心理树洞 · 阿暖', role: '备考情绪监测与干预', status: 'STANDBY',    desc: '默默倾听着您的每一次打卡心声...',     dotColor: 'bg-rose-500',                          avatar: '🐱' },
   { id: 'supervisor', name: '铁面教官 · 严师', role: '学习懈怠期监督干预', status: 'MONITORING', desc: '正在严密监视今日任务完成率...',       dotColor: 'bg-amber-500 animate-pulse',           avatar: '👨‍🏫' },
   { id: 'reviewer',   name: '透视专家 · 镜言', role: '周学情多维深度复盘', status: 'ONLINE',     desc: '正在聚合本周打卡与做题曲线...',       dotColor: 'bg-emerald-500',                       avatar: '👁️' },
 ])
 
 // 获取今日 AI 规划任务
+const importanceOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 }
+
+const sortTasks = () => {
+  tasks.value.sort((a, b) => {
+    if (a.status !== b.status) return a.status - b.status // 未完成排前面
+    return (importanceOrder[a.importance] ?? 9) - (importanceOrder[b.importance] ?? 9)
+  })
+}
+
 const fetchTasks = async () => {
   loadingTasks.value = true
   try {
-    const token = getToken()
-    const res = await fetch('/api/ai/tasks', {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-    const result = await res.json()
-    if (result.code === 200) {
-      tasks.value = result.data || []
+    const res = await request('/api/ai/tasks')
+    if (res.code === 200) {
+      tasks.value = res.data || []
+      sortTasks()
       recalculateStats()
     }
   } catch (err) {
@@ -336,18 +367,25 @@ const fetchTasks = async () => {
 // 勾选完成任务
 const handleCompleteTask = async (taskId) => {
   try {
-    const token = getToken()
-    const res = await fetch(`/api/ai/tasks/${taskId}/complete`, {
-      method: 'POST',
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-    const result = await res.json()
-    if (result.code === 200) {
+    const res = await request(`/api/ai/tasks/${taskId}/complete`, { method: 'POST' })
+    if (res.code === 200) {
       const task = tasks.value.find((t) => t.id === taskId)
       if (task) task.status = 1
+      sortTasks()
       recalculateStats()
       window.dispatchEvent(new CustomEvent('app-toast', {
         detail: { type: 'info', message: '完成任务！规划智能体已为您累积今日算法点数' },
+      }))
+    } else if (res.code === 400) {
+      window.dispatchEvent(new CustomEvent('app-toast', {
+        detail: { type: 'warning', message: '该任务已完成，无需重复操作' },
+      }))
+      // 同步本地状态
+      const task = tasks.value.find((t) => t.id === taskId)
+      if (task) task.status = 1
+    } else if (res.code === 404) {
+      window.dispatchEvent(new CustomEvent('app-toast', {
+        detail: { type: 'error', message: '任务不存在或不属于当前用户' },
       }))
     }
   } catch (err) {
@@ -359,13 +397,9 @@ const handleCompleteTask = async (taskId) => {
 const fetchInterventions = async () => {
   loadingInterventions.value = true
   try {
-    const token = getToken()
-    const res = await fetch('/api/ai/interventions', {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-    const result = await res.json()
-    if (result.code === 200) {
-      interventions.value = result.data || []
+    const res = await request('/api/ai/interventions')
+    if (res.code === 200) {
+      interventions.value = res.data || []
     }
   } catch (err) {
     console.error('获取干预消息失败:', err)
@@ -377,13 +411,8 @@ const fetchInterventions = async () => {
 // 标记干预消息已读
 const handleReadIntervention = async (id) => {
   try {
-    const token = getToken()
-    const res = await fetch(`/api/ai/interventions/${id}/read`, {
-      method: 'PUT',
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-    const result = await res.json()
-    if (result.code === 200) {
+    const res = await request(`/api/ai/interventions/${id}/read`, { method: 'PUT' })
+    if (res.code === 200) {
       interventions.value = interventions.value.filter((item) => item.id !== id)
       window.dispatchEvent(new CustomEvent('app-toast', {
         detail: { type: 'info', message: '已采纳该智能体建议，档案更新中...' },
@@ -394,75 +423,16 @@ const handleReadIntervention = async (id) => {
   }
 }
 
-// 手动触发教官介入
-const handleTriggerSupervisor = async () => {
-  triggerLoading.value = true
-  const supervisor = agents.value.find((a) => a.id === 'supervisor')
-  if (supervisor) {
-    supervisor.status = 'COMPUTING'
-    supervisor.desc = '正在分析近 3 日数据，撰写训诫中...'
-  }
-  try {
-    const token = getToken()
-    const res = await fetch('/api/ai/agent/supervisor/trigger', {
-      method: 'POST',
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-    const result = await res.json()
-    if (result.code === 200) {
-      window.dispatchEvent(new CustomEvent('app-toast', {
-        detail: { type: 'info', message: '模拟教官干预成功！警示已发布至您的动态流。' },
-      }))
-      await fetchInterventions()
-    }
-  } catch (err) {
-    console.error('触发干预失败:', err)
-  } finally {
-    triggerLoading.value = false
-    if (supervisor) {
-      supervisor.status = 'MONITORING'
-      supervisor.desc = '正在严密监视今日任务完成率...'
-    }
-  }
-}
-
-// 获取周复盘报告
-const fetchWeeklyReport = async () => {
-  loadingReport.value = true
-  reportHtml.value = ''
-  try {
-    const token = getToken()
-    const res = await fetch('/api/ai/report', {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
-    })
-    const result = await res.json()
-    if (result.code === 200 && result.data?.markdown) {
-      reportHtml.value = renderMarkdown(result.data.markdown)
-    } else if (result.code === 200 && result.data) {
-      reportHtml.value = renderMarkdown(typeof result.data === 'string' ? result.data : '')
-    }
-  } catch (err) {
-    console.error('生成报告失败:', err)
-  } finally {
-    loadingReport.value = false
-  }
-}
-
 const hasCheckedIn = ref(false)
 
 // 对接已有打卡统计 API，填充连续天数
 const fetchStudyStats = async () => {
   try {
-    const token = getToken()
-    if (!token) return
-    const res = await fetch('/api/activity/checkin/stats', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const result = await res.json()
-    if (result.code === 200 && result.data) {
-      studyStats.value.continuousDays = result.data.continuousDays || 0
+    const res = await request('/api/activity/checkin/stats')
+    if (res.code === 200 && res.data) {
+      studyStats.value.continuousDays = res.data.continuousDays || 0
       studyStats.value.totalHours = 0 // 后端暂无累计时长聚合 API
-      hasCheckedIn.value = result.data.todayChecked || false
+      hasCheckedIn.value = res.data.todayChecked || false
     }
   } catch (e) {
     console.error('获取打卡统计失败:', e)
@@ -481,7 +451,7 @@ const recalculateStats = () => {
 const goBack = () => router.back()
 
 onMounted(() => {
-  const token = getToken()
+  const token = localStorage.getItem('token')
   if (!token) {
     window.dispatchEvent(new CustomEvent('app-toast', {
       detail: { type: 'warning', message: '请先登录以解锁 AI 智能伴侣空间' },

@@ -11,6 +11,8 @@ import GroupList from '@/views/GroupList.vue'
 import GroupChat from '@/views/GroupChat.vue'
 import AdminDashboard from '@/views/AdminDashboard.vue'
 import AiDashboard from '@/views/AiDashboard.vue'
+import AiAsk from '@/views/AiAsk.vue'
+import AiKnowledge from '@/views/AiKnowledge.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -68,6 +70,16 @@ const router = createRouter({
       path: '/ai',
       name: 'AiDashboard',
       component: AiDashboard,
+    },
+    {
+      path: '/ai/ask',
+      name: 'AiAsk',
+      component: AiAsk,
+    },
+    {
+      path: '/ai/knowledge',
+      name: 'AiKnowledge',
+      component: AiKnowledge,
     },
     {
       path: '/admin/dashboard',

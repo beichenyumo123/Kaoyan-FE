@@ -4,7 +4,6 @@ const md = new MarkdownIt({
   html: true,       // 信任后端 Jsoup XSS 清洗后的安全 HTML
   linkify: true,    // 自动将 URL 转为链接
   typographer: true, // 智能引号、破折号等
-  breaks: true,     // 换行符转为 <br>
 })
 
 // 链接在新窗口打开
