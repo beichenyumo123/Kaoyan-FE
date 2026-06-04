@@ -10,6 +10,10 @@ import UserProfile from '@/views/UserProfile.vue'
 import GroupList from '@/views/GroupList.vue'
 import GroupChat from '@/views/GroupChat.vue'
 import AdminDashboard from '@/views/AdminDashboard.vue'
+import WrongQuestionBook from '@/views/WrongQuestionBook.vue'
+import AddWrongQuestion from '@/views/AddWrongQuestion.vue'
+import WrongQuestionDetail from '@/views/WrongQuestionDetail.vue'
+import EbbinghausReview from '@/views/EbbinghausReview.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -67,6 +71,26 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'AdminDashboard',
       component: AdminDashboard,
+    },
+    {
+      path: '/questions',
+      name: 'WrongQuestionBook',
+      component: WrongQuestionBook,
+    },
+    {
+      path: '/questions/add',
+      name: 'AddWrongQuestion',
+      component: AddWrongQuestion,
+    },
+    {
+      path: '/questions/:id',
+      name: 'WrongQuestionDetail',
+      component: WrongQuestionDetail,
+    },
+    {
+      path: '/review',
+      name: 'EbbinghausReview',
+      component: EbbinghausReview,
     },
   ],
 })
