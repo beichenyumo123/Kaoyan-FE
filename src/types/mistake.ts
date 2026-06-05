@@ -60,6 +60,7 @@ export interface MistakeNoteVO {
   reviewStageText?: string
   questionContentHtml?: string
   answerHtml?: string
+  errorReason?: string | null
 }
 
 // ============================================================

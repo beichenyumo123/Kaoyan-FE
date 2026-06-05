@@ -394,7 +394,7 @@
             <X :size="24" class="text-white" />
           </button>
           <img
-            :src="question?.imageUrl"
+            :src="question?.imageUrl ?? undefined"
             alt="题目图片"
             class="max-w-full max-h-[90vh] object-contain rounded-2xl"
             @click.stop
@@ -556,7 +556,7 @@ const reviewStage = computed(() => {
 
 function isDueSoon(dateStr: string | null) {
   if (!dateStr) return false
-  return dateStr <= new Date().toISOString().split('T')[0]
+  return dateStr <= new Date().toISOString().split('T')[0]!
 }
 
 function formatDate(dateStr: string | null) {
@@ -662,8 +662,8 @@ async function confirmReview() {
           : result.data.masteryLevel > 0 ? 'LOW' : 'NONE'
         question.value.reviewStage = result.data.reviewStage
         question.value.reviewCount = result.data.reviewCount
-        question.value.nextReviewDate = result.data.nextReviewDate
-        question.value.lastReviewDate = new Date().toISOString().split('T')[0]
+        question.value.nextReviewDate = result.data.nextReviewDate ?? null
+        question.value.lastReviewDate = new Date().toISOString().split('T')[0]!
       }
       showToast('已标记复习完成！')
     } else {

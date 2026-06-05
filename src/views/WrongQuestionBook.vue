@@ -61,7 +61,7 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 animate-fade-in-up">
           <div class="bg-white border border-zinc-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300">
             <p class="text-xs text-zinc-400 mb-1">总错题数</p>
-            <p class="text-2xl font-bold text-zinc-900">{{ stats.total }}</p>
+            <p class="text-2xl font-bold text-zinc-900">{{ stats.totalNotes }}</p>
           </div>
           <div
             class="bg-white border border-zinc-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300 cursor-pointer"
@@ -69,11 +69,11 @@
             :class="{ 'ring-2 ring-zinc-900': showReviewOnly }"
           >
             <p class="text-xs text-zinc-400 mb-1">今日待复习</p>
-            <p class="text-2xl font-bold text-red-600">{{ stats.todayReview }}</p>
+            <p class="text-2xl font-bold text-red-600">{{ stats.todayReviewCount }}</p>
           </div>
           <div class="bg-white border border-zinc-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300">
             <p class="text-xs text-zinc-400 mb-1">本周复习</p>
-            <p class="text-2xl font-bold text-zinc-900">{{ stats.weekReview }}</p>
+            <p class="text-2xl font-bold text-zinc-900">{{ weekReviewCount }}</p>
           </div>
           <div class="bg-white border border-zinc-200 rounded-2xl p-4 hover:shadow-md transition-shadow duration-300">
             <p class="text-xs text-zinc-400 mb-1">掌握率</p>
@@ -291,11 +291,27 @@ const masteryRate = computed(() => {
   return Math.round((highCount / questions.value.length) * 100)
 })
 
+// 本周复习数（基于已加载题目中本周被安排复习的数量）
+const weekReviewCount = computed(() => {
+  const now = new Date()
+  const dayOfWeek = now.getDay()
+  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // 本周一
+  const monday = new Date(now)
+  monday.setDate(now.getDate() + mondayOffset)
+  const mondayStr = monday.toISOString().split('T')[0]!
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  const sundayStr = sunday.toISOString().split('T')[0]!
+  return questions.value.filter(
+    (q) => q.nextReviewDate && q.nextReviewDate >= mondayStr && q.nextReviewDate <= sundayStr,
+  ).length
+})
+
 const filteredQuestions = computed(() => {
   let result = questions.value
 
   if (showReviewOnly.value) {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toISOString().split('T')[0]!
     result = result.filter((q) => q.nextReviewDate && q.nextReviewDate <= today)
   }
 
@@ -322,7 +338,7 @@ const filteredQuestions = computed(() => {
 
 function isDueToday(dateStr: string | null) {
   if (!dateStr) return false
-  return dateStr <= new Date().toISOString().split('T')[0]
+  return dateStr <= new Date().toISOString().split('T')[0]!
 }
 
 function goBack() {
@@ -374,8 +390,14 @@ async function fetchReviewCount() {
   try {
     const result = await getTodayReview()
     if (result.code === 200 && result.data) {
-      const records = result.data.records || result.data as any
-      reviewCount.value = Array.isArray(records) ? records.length : (records.total || 0)
+      const data = result.data
+      if ('records' in data && Array.isArray(data.records)) {
+        reviewCount.value = data.records.length
+      } else if ('total' in data && typeof data.total === 'number') {
+        reviewCount.value = data.total
+      } else {
+        reviewCount.value = 0
+      }
     }
   } catch (err) {
     console.error('获取复习计划失败:', err)
