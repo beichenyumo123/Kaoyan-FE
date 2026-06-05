@@ -199,6 +199,19 @@
                   >推荐</span
                 >
               </button>
+              <button
+                @click="router.push('/interview')"
+                class="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1"
+              >
+                <div class="flex items-center gap-3">
+                  <Mic class="w-4 h-4 text-emerald-500" />
+                  AI 模拟面试
+                </div>
+                <span
+                  class="text-[10px] bg-emerald-100 text-emerald-600 px-1.5 py-0.5 rounded-md font-medium"
+                  >NEW</span
+                >
+              </button>
             </nav>
           </div>
 
@@ -731,6 +744,7 @@ import {
   GraduationCap,
   ArrowRight,
   CheckSquare,
+  Mic,
 } from 'lucide-vue-next'
 import router from '@/router'
 import { stripHtml } from '@/utils/markdown'
