@@ -437,6 +437,53 @@
                 </p>
               </div>
 
+              <!-- 图形验证码 -->
+              <div class="group">
+                <label
+                  class="block text-sm font-medium text-zinc-700 mb-1.5 transition-colors group-hover:text-zinc-900"
+                  >验证码</label
+                >
+                <div class="flex gap-3">
+                  <input
+                    v-model="captchaCode"
+                    type="text"
+                    maxlength="4"
+                    class="flex-1 px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-lg text-sm text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-sm focus:-translate-y-0.5 focus:shadow-md"
+                    placeholder="请输入验证码"
+                    :disabled="isLoading"
+                    autocomplete="off"
+                  />
+                  <img
+                    v-if="captchaBase64"
+                    :src="captchaBase64"
+                    alt="验证码"
+                    @click="fetchCaptcha"
+                    class="h-[42px] w-[140px] border border-zinc-200 rounded-lg cursor-pointer hover:border-zinc-400 transition-colors bg-white object-contain shrink-0"
+                    title="点击刷新验证码"
+                  />
+                  <button
+                    v-else-if="captchaError"
+                    type="button"
+                    @click="fetchCaptcha"
+                    class="h-[42px] w-[120px] border border-red-300 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                    title="点击重试"
+                  >
+                    <span class="text-xs text-red-500">加载失败，点击重试</span>
+                  </button>
+                  <button
+                    v-else
+                    type="button"
+                    @click="fetchCaptcha"
+                    class="h-[42px] w-[120px] border border-zinc-200 rounded-lg flex items-center justify-center bg-zinc-100 animate-pulse shrink-0"
+                  >
+                    <span class="text-xs text-zinc-400">加载中</span>
+                  </button>
+                </div>
+                <p v-if="captchaError" class="mt-1.5 text-xs text-red-500 transform transition-all">
+                  {{ captchaError }}
+                </p>
+              </div>
+
               <button
                 type="submit"
                 :disabled="isLoading"
@@ -591,6 +638,7 @@ const switchTab = (toLogin) => {
   if (isLoading.value || isLogin.value === toLogin) return
   isLogin.value = toLogin
   clearErrors()
+  fetchCaptcha()
 }
 
 const clearErrors = () => {
@@ -690,6 +738,8 @@ const handleRegister = async () => {
       username: registerForm.username,
       password: registerForm.password,
       email: registerForm.email,
+      captchaCode: captchaCode.value,
+      captchaUuid: captchaUuid.value,
     }
 
     console.log('发送 POST /api/auth/register:', requestPayload)
@@ -702,16 +752,18 @@ const handleRegister = async () => {
     const result = await response.json()
 
     if (result.code === 200) {
-      // 注册成功：触发 toast 提示 + 自动填入账号 + 切换登录 Tab
+      // 注册成功：后端直接返回 token，自动登录
+      localStorage.setItem('token', result.data.token)
       window.dispatchEvent(
         new CustomEvent('app-toast', {
-          detail: { type: 'info', message: '注册成功，请登录' },
+          detail: { type: 'info', message: '注册成功，欢迎加入！' },
         }),
       )
-      loginForm.account = registerForm.email
-      switchTab(true)
+      router.push('/community')
     } else {
       registerErrors.username = result.message || '注册失败，请重试'
+      // 注册失败自动刷新验证码
+      fetchCaptcha()
     }
   } catch (error) {
     console.error('注册异常:', error)
