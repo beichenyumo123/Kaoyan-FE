@@ -272,7 +272,7 @@ const router = useRouter()
 
 const loading = ref(true)
 const questions = ref<MistakeNoteVO[]>([])
-const stats = ref({ totalNotes: 0, todayReviewCount: 0, reviewedToday: 0, avgMastery: 0 })
+const stats = ref({ total: 0, todayReview: 0, weekReview: 0, avgMastery: 0 })
 const reviewCount = ref(0)
 const unreadCount = ref(0)
 const page = ref(1)
@@ -295,7 +295,7 @@ const filteredQuestions = computed(() => {
   let result = questions.value
 
   if (showReviewOnly.value) {
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Date().toISOString().split('T')[0]!
     result = result.filter((q) => q.nextReviewDate && q.nextReviewDate <= today)
   }
 
@@ -322,7 +322,7 @@ const filteredQuestions = computed(() => {
 
 function isDueToday(dateStr: string | null) {
   if (!dateStr) return false
-  return dateStr <= new Date().toISOString().split('T')[0]
+  return dateStr <= new Date().toISOString().split('T')[0]!
 }
 
 function goBack() {
@@ -345,7 +345,13 @@ async function fetchStats() {
   try {
     const result = await getStats()
     if (result.code === 200 && result.data) {
-      stats.value = result.data
+      const d = result.data as any
+      stats.value = {
+        total: d.totalNotes ?? 0,
+        todayReview: d.todayReviewCount ?? 0,
+        weekReview: d.weekReview ?? 0,
+        avgMastery: d.avgMastery ?? 0,
+      }
     }
   } catch (err) {
     console.error('获取统计失败:', err)
@@ -374,7 +380,8 @@ async function fetchReviewCount() {
   try {
     const result = await getTodayReview()
     if (result.code === 200 && result.data) {
-      const records = result.data.records || result.data as any
+      const data = result.data as any
+      const records = data.records || data
       reviewCount.value = Array.isArray(records) ? records.length : (records.total || 0)
     }
   } catch (err) {

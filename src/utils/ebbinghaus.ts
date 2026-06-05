@@ -13,10 +13,10 @@ export const EBBINGHAUS_INTERVALS = [1, 2, 4, 7, 15, 30]
  */
 export function getNextReviewDate(reviewCount: number, lastReviewDate: string): string {
   const intervalIndex = Math.min(reviewCount, EBBINGHAUS_INTERVALS.length - 1)
-  const daysToAdd = EBBINGHAUS_INTERVALS[intervalIndex]
+  const daysToAdd = EBBINGHAUS_INTERVALS[intervalIndex] ?? 1
   const lastDate = new Date(lastReviewDate)
   lastDate.setDate(lastDate.getDate() + daysToAdd)
-  return lastDate.toISOString().split('T')[0]
+  return lastDate.toISOString().split('T')[0]!
 }
 
 /**
@@ -47,5 +47,5 @@ export function getReviewStage(reviewCount: number): string {
     '第5次复习(15天)',
     '长期记忆(30天)',
   ]
-  return stages[Math.min(reviewCount, stages.length - 1)]
+  return stages[Math.min(reviewCount, stages.length - 1)]!
 }

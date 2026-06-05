@@ -9,27 +9,29 @@ const md = new MarkdownIt({
 // 链接在新窗口打开
 const defaultRender =
   md.renderer.rules.link_open ||
-  function (tokens, idx, options, _env, self) {
+  function (tokens: any, idx: any, options: any, _env: any, self: any) {
     return self.renderToken(tokens, idx, options)
   }
 
-md.renderer.rules.link_open = function (tokens, idx, options, env, self) {
+md.renderer.rules.link_open = function (tokens: any, idx: any, options: any, env: any, self: any) {
   const token = tokens[idx]
-  const hrefIndex = token.attrIndex('href')
-  if (hrefIndex >= 0) {
-    token.attrSet('target', '_blank')
-    token.attrSet('rel', 'noopener noreferrer')
+  if (token) {
+    const hrefIndex = token.attrIndex('href')
+    if (hrefIndex >= 0) {
+      token.attrSet('target', '_blank')
+      token.attrSet('rel', 'noopener noreferrer')
+    }
   }
   return defaultRender(tokens, idx, options, env, self)
 }
 
-export function renderMarkdown(content) {
+export function renderMarkdown(content: string) {
   if (!content) return ''
   return md.render(content)
 }
 
 /** 剥离 HTML 标签，取纯文本（用于帖子摘要等场景） */
-export function stripHtml(html) {
+export function stripHtml(html: string) {
   if (!html) return ''
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim()
 }

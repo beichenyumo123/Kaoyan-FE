@@ -324,7 +324,7 @@
               <button
                 v-for="level in masteryLevels"
                 :key="level.value"
-                @click="form.masteryLevel = level.value"
+                @click="form.masteryLevel = level.value as any"
                 class="flex flex-col items-center gap-1 py-3 rounded-xl text-xs font-medium border transition-all"
                 :class="form.masteryLevel === level.value
                   ? level.activeClass
@@ -433,6 +433,15 @@ const masteryLevels = [
   { value: 'LOW', label: '不太熟练', icon: AlertTriangle, activeClass: 'bg-orange-50 text-orange-700 border-orange-300' },
   { value: 'MEDIUM', label: '基本掌握', icon: CheckCircle2, activeClass: 'bg-blue-50 text-blue-700 border-blue-300' },
   { value: 'HIGH', label: '完全掌握', icon: Trophy, activeClass: 'bg-green-50 text-green-700 border-green-300' },
+]
+
+const errorReasons = [
+  { value: '概念不清', label: '概念不清', icon: '📖' },
+  { value: '计算错误', label: '计算错误', icon: '🔢' },
+  { value: '审题不清', label: '审题不清', icon: '🔍' },
+  { value: '知识遗忘', label: '知识遗忘', icon: '🧠' },
+  { value: '方法错误', label: '方法错误', icon: '⚙️' },
+  { value: '粗心大意', label: '粗心大意', icon: '😅' },
 ]
 
 const form = ref({

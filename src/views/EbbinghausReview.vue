@@ -228,7 +228,7 @@
               <div class="text-xs text-zinc-400">{{ item.count }}</div>
               <div
                 class="w-full rounded-t bg-zinc-900 transition-all"
-                :style="{ height: `${getBarHeight(item.count)}%`, opacity: 0.3 + idx * 0.15 }"
+                :style="{ height: `${getBarHeight(item.count)}%`, opacity: 0.3 + Number(idx) * 0.15 }"
               />
               <div class="text-xs text-zinc-400">{{ item.range }}</div>
             </div>
@@ -408,17 +408,17 @@ const stageBars = computed(() => {
   }))
 })
 
-function getBarHeight(count: number) {
+function getBarHeight(count: number | string) {
   const max = Math.max(...stageBars.value.map((i: any) => i.count || 0), 1)
-  return Math.max((count / max) * 100, 4)
+  return Math.max((Number(count) / max) * 100, 4)
 }
 
-function barColor(index: number) {
+function barColor(index: number | string) {
   const colors = [
     'bg-red-400', 'bg-orange-400', 'bg-amber-400',
     'bg-blue-400', 'bg-green-400', 'bg-emerald-500',
   ]
-  return colors[index] || 'bg-zinc-400'
+  return colors[Number(index)] || 'bg-zinc-400'
 }
 
 function calendarDayClass(day: CalendarDayDto) {

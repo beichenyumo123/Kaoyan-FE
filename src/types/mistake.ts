@@ -55,6 +55,7 @@ export interface MistakeNoteVO {
   nextReviewDate: string | null
   lastReviewDate: string | null
   tags: string[]
+  errorReason?: string
   createdAt: string
   updatedAt: string
   reviewStageText?: string
@@ -124,6 +125,7 @@ export interface ReviewTaskDto {
   reviewCount: number
   isCompleted: boolean
   planDate: string
+  lastReviewDate?: string
 }
 
 export interface ReviewResultDto {
