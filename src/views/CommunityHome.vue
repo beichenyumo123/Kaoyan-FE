@@ -165,6 +165,26 @@
             </nav>
           </div>
 
+          <div class="border-t border-zinc-200 pt-5">
+            <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 pl-2">
+              实用工具
+            </h2>
+            <nav class="space-y-1 mb-5">
+              <button
+                @click="goToSchoolSelect"
+                class="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1"
+              >
+                <div class="flex items-center gap-3">
+                  <Sparkles class="w-4 h-4 text-blue-500" />
+                  AI 智能择校
+                </div>
+                <span class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md font-medium"
+                  >推荐</span
+                >
+              </button>
+            </nav>
+          </div>
+
           <div class="border-t border-zinc-200 pt-6">
             <div class="bg-blue-50/50 border border-blue-100 rounded-xl p-4">
               <h3 class="text-sm font-medium text-blue-900 mb-1">正在备考 408？</h3>
@@ -596,6 +616,7 @@ import {
   Flame,
   X,
   Bookmark,
+  Sparkles,
 } from 'lucide-vue-next'
 import router from '@/router'
 import { stripHtml } from '@/utils/markdown'
@@ -981,6 +1002,7 @@ const goToUserCenter = () => router.push('/user_center')
 const goToCreatePost = () => router.push('/create_post')
 const goToMessageCenter = () => router.push('/message')
 const goToGroupList = () => router.push('/groups')
+const goToSchoolSelect = () => router.push('/school-select')
 </script>
 
 <style scoped>
