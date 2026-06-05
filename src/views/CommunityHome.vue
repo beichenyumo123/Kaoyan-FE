@@ -181,6 +181,48 @@
             </nav>
           </div>
 
+          <div class="border-t border-zinc-200 pt-5">
+            <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 pl-2">
+              实用工具
+            </h2>
+            <nav class="space-y-1 mb-5">
+              <button
+                @click="goToSchoolSelect"
+                class="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1"
+              >
+                <div class="flex items-center gap-3">
+                  <Sparkles class="w-4 h-4 text-blue-500" />
+                  AI 智能择校
+                </div>
+                <span
+                  class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md font-medium"
+                  >推荐</span
+                >
+              </button>
+            </nav>
+          </div>
+
+          <div class="border-t border-zinc-200 pt-5">
+            <h2 class="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3 pl-2">
+              实用工具
+            </h2>
+            <nav class="space-y-1 mb-5">
+              <button
+                @click="goToSchoolSelect"
+                class="w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-xl transition-all duration-300 transform active:scale-95 border text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border-transparent hover:translate-x-1"
+              >
+                <div class="flex items-center gap-3">
+                  <Sparkles class="w-4 h-4 text-blue-500" />
+                  AI 智能择校
+                </div>
+                <span
+                  class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md font-medium"
+                  >推荐</span
+                >
+              </button>
+            </nav>
+          </div>
+
           <div class="border-t border-zinc-200 pt-6 space-y-3">
             <!-- D 模块快捷入口 -->
             <button
@@ -710,6 +752,7 @@ import {
   GraduationCap,
   ArrowRight,
   CheckSquare,
+  Sparkles,
 } from 'lucide-vue-next'
 import router from '@/router'
 import { stripHtml } from '@/utils/markdown'
@@ -1129,6 +1172,7 @@ const goToAiDashboard = () => router.push('/ai')
 const goToGroupList = () => router.push('/groups')
 const goToExperienceSquare = () => router.push('/experience')
 const goToQuestionBook = () => router.push('/questions')
+const goToSchoolSelect = () => router.push('/school-select')
 </script>
 
 <style scoped>

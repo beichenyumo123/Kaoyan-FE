@@ -22,6 +22,7 @@ import AddWrongQuestion from '@/views/AddWrongQuestion.vue'
 import WrongQuestionDetail from '@/views/WrongQuestionDetail.vue'
 import EbbinghausReview from '@/views/EbbinghausReview.vue'
 import InterviewPage from '@/views/InterviewPage.vue'
+import SchoolSelect from '@/views/SchoolSelect.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -94,6 +95,11 @@ const router = createRouter({
       path: '/admin/dashboard',
       name: 'AdminDashboard',
       component: AdminDashboard,
+    },
+    {
+      path: '/school-select',
+      name: 'SchoolSelect',
+      component: SchoolSelect,
     },
     // ==================== D 模块：上岸认证 + 经验贴 ====================
     {
