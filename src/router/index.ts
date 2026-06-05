@@ -21,6 +21,7 @@ import WrongQuestionBook from '@/views/WrongQuestionBook.vue'
 import AddWrongQuestion from '@/views/AddWrongQuestion.vue'
 import WrongQuestionDetail from '@/views/WrongQuestionDetail.vue'
 import EbbinghausReview from '@/views/EbbinghausReview.vue'
+import InterviewPage from '@/views/InterviewPage.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -142,6 +143,12 @@ const router = createRouter({
       path: '/review',
       name: 'EbbinghausReview',
       component: EbbinghausReview,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/interview',
+      name: 'Interview',
+      component: InterviewPage,
       meta: { requiresAuth: true },
     },
   ],
