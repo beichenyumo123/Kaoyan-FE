@@ -204,6 +204,15 @@
                     title="点击刷新验证码"
                   />
                   <button
+                    v-else-if="captchaError"
+                    type="button"
+                    @click="fetchCaptcha"
+                    class="h-[42px] w-[120px] border border-red-300 rounded-lg flex items-center justify-center bg-red-50 hover:bg-red-100 transition-colors shrink-0"
+                    title="点击重试"
+                  >
+                    <span class="text-xs text-red-500">加载失败，点击重试</span>
+                  </button>
+                  <button
                     v-else
                     type="button"
                     @click="fetchCaptcha"
@@ -552,13 +561,23 @@ const fetchCaptcha = async () => {
     captchaCode.value = ''
     captchaError.value = ''
     const response = await fetch('/api/auth/captcha')
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
     const result = await response.json()
     if (result.code === 200 && result.data) {
       captchaUuid.value = result.data.uuid
-      captchaBase64.value = result.data.base64
+      // 兼容后端返回纯base64（不带data URI前缀）的情况
+      const base64 = result.data.base64
+      captchaBase64.value = base64.startsWith('data:image/')
+        ? base64
+        : `data:image/png;base64,${base64}`
+    } else {
+      captchaError.value = result.message || '验证码获取失败'
     }
   } catch (error) {
     console.error('获取验证码失败:', error)
+    captchaError.value = '验证码加载失败，请确保后端服务已启动'
   }
 }
 

@@ -12,6 +12,8 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-vue-next": "^1.0.0",
     "markdown-it": "^14.1.1",
     "md-editor-v3": "^6.5.1",

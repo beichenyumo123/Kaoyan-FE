@@ -17,6 +17,10 @@ import CreateExperience from '@/views/CreateExperience.vue'
 import AiDashboard from '@/views/AiDashboard.vue'
 import AiAsk from '@/views/AiAsk.vue'
 import AiKnowledge from '@/views/AiKnowledge.vue'
+import WrongQuestionBook from '@/views/WrongQuestionBook.vue'
+import AddWrongQuestion from '@/views/AddWrongQuestion.vue'
+import WrongQuestionDetail from '@/views/WrongQuestionDetail.vue'
+import EbbinghausReview from '@/views/EbbinghausReview.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -116,7 +120,41 @@ const router = createRouter({
       name: 'EditExperience',
       component: CreateExperience,
     },
+    {
+      path: '/questions',
+      name: 'WrongQuestionBook',
+      component: WrongQuestionBook,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/questions/add',
+      name: 'AddWrongQuestion',
+      component: AddWrongQuestion,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/questions/:id',
+      name: 'WrongQuestionDetail',
+      component: WrongQuestionDetail,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/review',
+      name: 'EbbinghausReview',
+      component: EbbinghausReview,
+      meta: { requiresAuth: true },
+    },
   ],
+})
+
+// 路由守卫：需要登录的页面未登录则跳转到登录页
+router.beforeEach((to, _from, next) => {
+  const token = localStorage.getItem('token')
+  if (to.meta.requiresAuth && !token) {
+    next({ path: '/', query: { redirect: to.fullPath } })
+  } else {
+    next()
+  }
 })
 
 export default router
