@@ -752,7 +752,6 @@ import {
   GraduationCap,
   ArrowRight,
   CheckSquare,
-  Sparkles,
 } from 'lucide-vue-next'
 import router from '@/router'
 import { stripHtml } from '@/utils/markdown'
