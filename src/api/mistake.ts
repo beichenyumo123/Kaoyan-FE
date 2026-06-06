@@ -8,6 +8,7 @@ import type {
   MistakeNoteDto,
   CreateNoteReq,
   UpdateNoteReq,
+  QuickSaveReq,
   CompleteReviewReq,
   ReviewTaskDto,
   ReviewResultDto,
@@ -259,5 +260,29 @@ export function uploadImage(
   return request('/api/upload/image', {
     method: 'POST',
     body: formData,
+  })
+}
+
+// ============================================================
+// AI 对话快速收藏
+// ============================================================
+
+/** 从 AI 对话快速收藏错题 */
+export function quickSave(
+  data: QuickSaveReq,
+): Promise<ApiResult<{ saved: boolean; noteId?: number; duplicateIds?: number[] }>> {
+  return request(`${BASE}/quick-save`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}
+
+/** 批量检查消息是否已收藏 */
+export function checkSaved(
+  chatMessageIds: number[],
+): Promise<ApiResult<{ savedIds: number[] }>> {
+  return request(`${BASE}/check-saved`, {
+    method: 'POST',
+    body: JSON.stringify({ chatMessageIds }),
   })
 }

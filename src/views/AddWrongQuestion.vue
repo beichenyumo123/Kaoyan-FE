@@ -392,8 +392,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowLeft, ArrowRight, Camera, Upload, X, ScanLine,
   CheckCircle2, Save, Plus, Check,
@@ -407,6 +407,7 @@ import {
 import type { KnowledgePointVO } from '@/types/mistake'
 
 const router = useRouter()
+const route = useRoute()
 
 const steps = ['拍照上传', 'OCR 识别', '知识点', '填写详情']
 const currentStep = ref(0)
@@ -424,6 +425,7 @@ const selectedKnowledgePoints = ref<number[]>([])
 const recommendedPoints = ref<KnowledgePointVO[]>([])
 const tagInput = ref('')
 const submitting = ref(false)
+const prefilledAnswer = ref('') // 从 AI 答疑带过来的解析
 
 const cameraInput = ref<HTMLInputElement | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -454,6 +456,38 @@ const form = ref({
 
 const canSubmit = computed(() => {
   return form.value.subject && form.value.errorReason
+})
+
+// 从 AI 答疑跳转过来时，预填表单
+onMounted(() => {
+  const q = route.query
+  if (q.question || q.answer || q.imageUrl || q.subject) {
+    // 预填学科
+    if (q.subject && typeof q.subject === 'string') {
+      form.value.subject = q.subject
+    }
+    // 预填 OCR 文本（来自 AI 答疑的题目）
+    if (q.question && typeof q.question === 'string') {
+      ocrText.value = q.question
+    }
+    // 预填图片
+    if (q.imageUrl && typeof q.imageUrl === 'string') {
+      uploadedImageUrl.value = q.imageUrl
+      uploadedImage.value = q.imageUrl
+    }
+    // 预填解析（来自 AI 回答）
+    if (q.answer && typeof q.answer === 'string') {
+      prefilledAnswer.value = q.answer
+    }
+    // 如果有预填数据，跳到第 2 步（OCR 识别结果）或第 3 步（知识点）
+    if (q.question || q.answer) {
+      // 有题目内容，跳到知识点选择步骤
+      currentStep.value = 2
+    } else if (q.imageUrl) {
+      // 只有图片，跳到 OCR 识别步骤
+      currentStep.value = 1
+    }
+  }
 })
 
 function stepClass(index: number) {
@@ -633,6 +667,7 @@ async function submitQuestion() {
     const result = await createNote({
       subject: form.value.subject,
       questionContent: ocrText.value,
+      answer: prefilledAnswer.value || undefined,
       knowledgePoints: selectedKnowledgePoints.value.join(','),
       source: uploadedImageUrl.value ? 'OCR' : 'MANUAL',
       imageUrl: uploadedImageUrl.value || undefined,

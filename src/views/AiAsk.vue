@@ -129,8 +129,9 @@
           <template v-for="(msg, idx) in messages" :key="idx">
             <!-- User Message -->
             <div v-if="msg.role === 'user'" class="flex justify-end">
-              <div class="max-w-[80%] bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-md">
-                <p class="text-sm">{{ msg.content }}</p>
+              <div class="max-w-[80%] bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-md space-y-2">
+                <img v-if="msg.imageUrl" :src="msg.imageUrl" class="max-w-full rounded-lg max-h-48 object-cover cursor-pointer" @click="previewImage = msg.imageUrl" />
+                <p v-if="msg.content" class="text-sm">{{ msg.content }}</p>
               </div>
             </div>
 
@@ -151,6 +152,24 @@
                   <div class="text-sm leading-relaxed post-content" v-html="renderMarkdown(msg.content)"></div>
                   <span v-if="msg.streaming" class="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse ml-0.5 align-text-bottom"></span>
                 </div>
+                <!-- 操作按钮：加入错题集 / 已收藏 -->
+                <div v-if="!msg.streaming && msg.content && !msg.content.startsWith('【AI')" class="flex gap-2 mt-1">
+                  <button
+                    v-if="isMsgSaved(msg, idx)"
+                    class="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1 cursor-default"
+                  >
+                    <Check class="w-3 h-3" />
+                    已收藏
+                  </button>
+                  <button
+                    v-else
+                    @click="addToMistake(idx)"
+                    class="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 border border-transparent transition-all flex items-center gap-1"
+                  >
+                    <Download class="w-3 h-3" />
+                    加入错题集
+                  </button>
+                </div>
               </div>
             </div>
           </template>
@@ -158,15 +177,36 @@
 
         <!-- Input Area -->
         <div class="border-t border-zinc-200 bg-white/80 backdrop-blur-md pt-4 pb-2 -mx-4 px-4 flex-shrink-0">
+          <!-- 图片预览 -->
+          <div v-if="pendingImage" class="mb-3 relative inline-block">
+            <img :src="pendingImage.preview" class="h-20 rounded-lg border border-zinc-200 object-cover" />
+            <button
+              @click="removePendingImage"
+              class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+            >×</button>
+            <div v-if="pendingImage.uploading" class="absolute inset-0 bg-white/70 flex items-center justify-center rounded-lg">
+              <div class="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+            </div>
+          </div>
           <p v-if="messages.length > 0 && !loadingMessages" class="text-[10px] text-zinc-400 mb-2 text-center">
             答疑导师会记住当前对话上下文，24 小时后自动过期。
           </p>
           <div class="flex items-end gap-3">
+            <!-- 图片上传按钮 -->
+            <button
+              @click="triggerImageUpload"
+              :disabled="loading || !!pendingImage"
+              class="flex-shrink-0 w-10 h-10 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-400 flex items-center justify-center hover:bg-zinc-100 hover:text-zinc-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="上传图片"
+            >
+              <ImageIcon class="w-4 h-4" />
+            </button>
+            <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="handleImageSelect" />
             <div class="flex-1 relative">
               <textarea
                 v-model="inputText"
                 @keydown.enter.exact.prevent="handleSend"
-                placeholder="输入你的考研问题... (Enter 发送)"
+                placeholder="输入你的考研问题... (Enter 发送，支持上传题目图片)"
                 rows="1"
                 class="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
                 style="max-height: 120px"
@@ -203,6 +243,25 @@
       @click="sidebarOpen = false"
       class="fixed inset-0 bg-black/40 z-40 lg:hidden"
     ></div>
+
+    <!-- 图片全屏预览 -->
+    <div
+      v-if="previewImage"
+      @click="previewImage = null"
+      class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center cursor-zoom-out p-8"
+    >
+      <img :src="previewImage" class="max-w-full max-h-full object-contain rounded-lg" />
+    </div>
+
+    <!-- 收藏抽屉 -->
+    <AiSaveDrawer
+      :visible="drawerVisible"
+      :messages="messages"
+      :active-ai-msg-index="drawerActiveAiIdx"
+      :session-id="currentSessionId"
+      @close="drawerVisible = false"
+      @saved="onDrawerSaved"
+    />
   </div>
 </template>
 
@@ -210,10 +269,16 @@
 import { ref, nextTick, onMounted } from 'vue'
 import {
   ArrowLeft, MessageCircle, BookOpen, Send, Trash2, AlertTriangle, Square,
-  Plus, MessageSquare, PanelLeftClose, PanelLeftOpen,
+  Plus, MessageSquare, PanelLeftClose, PanelLeftOpen, Image as ImageIcon, Download, Check,
 } from 'lucide-vue-next'
 import { request } from '@/api'
+import { checkSaved } from '@/api/mistake'
 import { renderMarkdown } from '@/utils/markdown'
+import { useRouter, useRoute } from 'vue-router'
+import AiSaveDrawer from '@/components/AiSaveDrawer.vue'
+
+const router = useRouter()
+const route = useRoute()
 
 const subjects = ['数据结构', '操作系统', '计算机网络', '计算机组成原理', '高等数学', '线性代数', '概率论', '英语', '政治']
 
@@ -236,6 +301,15 @@ const sessions = ref([])
 const currentSessionId = ref(null)
 const chatContainer = ref(null)
 const textareaRef = ref(null)
+const imageInputRef = ref(null)
+const previewImage = ref(null)
+const pendingImage = ref(null) // { file, preview, uploading, imageUrl }
+
+// 收藏抽屉状态
+const drawerVisible = ref(false)
+const drawerActiveAiIdx = ref(0)
+const savedMsgIds = ref(new Set()) // 已收藏的消息ID集合
+
 let abortController = null
 
 const getToken = () => localStorage.getItem('token') || ''
@@ -295,11 +369,15 @@ const loadMessages = async (sessionId) => {
     const res = await request(`/api/ai/chat/sessions/${sessionId}/messages`)
     if (res.code === 200 && Array.isArray(res.data)) {
       messages.value = res.data.map((msg) => ({
+        id: msg.id,
         role: msg.role,
         content: msg.content,
+        imageUrl: msg.imageUrl || null,
         degraded: false,
       }))
       await scrollToBottom()
+      // 检查已收藏状态
+      checkSavedStatus()
     }
   } catch (err) {
     console.error('加载消息失败:', err)
@@ -355,12 +433,91 @@ const handleDeleteSession = async (sessionId) => {
 }
 
 // ============================================================
+// 图片上传
+// ============================================================
+
+const triggerImageUpload = () => {
+  imageInputRef.value?.click()
+}
+
+const handleImageSelect = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  // 清空 input 以允许重复选同一文件
+  e.target.value = ''
+
+  const preview = URL.createObjectURL(file)
+  pendingImage.value = { file, preview, uploading: true, imageUrl: null }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await request('/api/upload/image', { method: 'POST', body: formData })
+    if (res.code === 200) {
+      const url = res.data?.url || res.data
+      pendingImage.value.imageUrl = url
+      pendingImage.value.uploading = false
+    } else {
+      window.dispatchEvent(new CustomEvent('app-toast', {
+        detail: { type: 'error', message: '图片上传失败' },
+      }))
+      pendingImage.value = null
+    }
+  } catch (err) {
+    console.error('图片上传失败:', err)
+    window.dispatchEvent(new CustomEvent('app-toast', {
+      detail: { type: 'error', message: '图片上传失败' },
+    }))
+    pendingImage.value = null
+  }
+}
+
+const removePendingImage = () => {
+  if (pendingImage.value?.preview) URL.revokeObjectURL(pendingImage.value.preview)
+  pendingImage.value = null
+}
+
+// ============================================================
+// 加入错题集
+// ============================================================
+
+const addToMistake = (aiMsgIdx) => {
+  drawerActiveAiIdx.value = aiMsgIdx
+  drawerVisible.value = true
+}
+
+const onDrawerSaved = (noteId) => {
+  // 标记当前 AI 消息为已收藏
+  const aiMsg = messages.value[drawerActiveAiIdx.value]
+  if (aiMsg) {
+    savedMsgIds.value.add(aiMsg.id || drawerActiveAiIdx.value)
+  }
+}
+
+// 批量检查已收藏状态
+const checkSavedStatus = async () => {
+  const ids = messages.value.filter(m => m.id && m.role === 'assistant').map(m => m.id)
+  if (ids.length === 0) return
+  try {
+    const res = await checkSaved(ids)
+    if (res.code === 200 && res.data) {
+      savedMsgIds.value = new Set(res.data.savedIds)
+    }
+  } catch {}
+}
+
+const isMsgSaved = (msg, idx) => {
+  return msg.id ? savedMsgIds.value.has(msg.id) : false
+}
+
+// ============================================================
 // 消息发送（SSE 流式）
 // ============================================================
 
 const handleSend = () => {
   const text = inputText.value.trim()
-  if (!text || loading.value) return
+  const hasImage = pendingImage.value?.imageUrl
+  if ((!text && !hasImage) || loading.value) return
   sendMessage(text)
 }
 
@@ -372,10 +529,19 @@ const handleStop = () => {
 }
 
 const sendMessage = async (text) => {
+  // Capture image before clearing
+  const imageUrl = pendingImage.value?.imageUrl || null
+
   // Add user message
-  messages.value.push({ role: 'user', content: text })
+  const userMsg = { role: 'user', content: text }
+  if (imageUrl) userMsg.imageUrl = imageUrl
+  messages.value.push(userMsg)
   inputText.value = ''
   if (textareaRef.value) textareaRef.value.style.height = 'auto'
+
+  // Clear pending image
+  if (pendingImage.value?.preview) URL.revokeObjectURL(pendingImage.value.preview)
+  pendingImage.value = null
 
   // Add placeholder AI message
   const aiMsgIndex = messages.value.length
@@ -392,9 +558,10 @@ const sendMessage = async (text) => {
   abortController = new AbortController()
 
   try {
-    const body = { question: text }
+    const body = { question: text || '请分析这张题目图片' }
     if (currentSessionId.value) body.sessionId = currentSessionId.value
     if (selectedSubject.value) body.subject = selectedSubject.value
+    if (imageUrl) body.imageUrl = imageUrl
 
     const response = await fetch('/api/ai/ask/stream', {
       method: 'POST',
