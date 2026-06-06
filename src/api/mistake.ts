@@ -263,6 +263,16 @@ export function uploadImage(
   })
 }
 
+/** 上传视频，返回 URL */
+export function uploadVideo(
+  formData: FormData,
+): Promise<ApiResult<{ url: string }>> {
+  return request('/api/upload/video', {
+    method: 'POST',
+    body: formData,
+  })
+}
+
 // ============================================================
 // AI 对话快速收藏
 // ============================================================
