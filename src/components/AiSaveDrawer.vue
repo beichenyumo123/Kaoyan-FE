@@ -28,7 +28,9 @@
                 class="w-full text-sm border border-zinc-200 rounded-lg px-3 py-2 bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
               >
                 <option value="" disabled>请选择学科</option>
-                <option v-for="s in subjects" :key="s" :value="s">{{ s }}</option>
+                <option v-for="option in subjectOptions" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
               </select>
             </div>
 
@@ -137,7 +139,12 @@ const emit = defineEmits<{
   saved: [noteId: number]
 }>()
 
-const subjects = ['数据结构', '操作系统', '计算机网络', '计算机组成原理', '高等数学', '线性代数', '概率论', '英语', '政治']
+const subjectOptions = [
+  { value: 'MATH', label: '数学' },
+  { value: 'ENGLISH', label: '英语' },
+  { value: 'POLITICS', label: '政治' },
+  { value: 'MAJOR', label: '专业课' }
+]
 
 const selectedSubject = ref('')
 const saving = ref(false)
