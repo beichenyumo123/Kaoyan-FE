@@ -1,156 +1,284 @@
 <template>
-  <div class="min-h-screen bg-zinc-50 font-sans text-zinc-900 flex flex-col">
-    <!-- Header -->
-    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200 h-16">
-      <div class="max-w-4xl mx-auto px-4 h-full flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <button
-            @click="$router.back()"
-            class="p-2 -ml-2 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
-          >
-            <ArrowLeft class="w-5 h-5" />
-          </button>
-          <div class="w-px h-4 bg-zinc-300"></div>
-          <h1 class="text-lg font-bold tracking-tight flex items-center gap-2">
-            <MessageCircle class="w-5 h-5 text-indigo-500" />
-            AI 答疑
-          </h1>
+  <div class="h-screen bg-zinc-50 font-sans text-zinc-900 flex overflow-hidden">
+    <!-- ========== 左侧会话列表 ========== -->
+    <aside
+      class="flex-shrink-0 bg-zinc-900 text-zinc-100 flex flex-col transition-all duration-300 z-50"
+      :class="sidebarOpen ? 'w-64' : 'w-0 overflow-hidden'"
+    >
+      <!-- 新建对话 -->
+      <div class="p-3 border-b border-zinc-700/50">
+        <button
+          @click="handleNewSession"
+          class="w-full flex items-center gap-2 px-3 py-2.5 text-sm rounded-lg border border-zinc-600 hover:bg-zinc-800 transition-colors"
+        >
+          <Plus class="w-4 h-4" />
+          新建对话
+        </button>
+      </div>
+
+      <!-- 会话列表 -->
+      <div class="flex-1 overflow-y-auto py-2 space-y-0.5 px-2">
+        <div v-if="loadingSessions" class="flex items-center justify-center py-8">
+          <div class="w-5 h-5 border-2 border-zinc-600 border-t-zinc-300 rounded-full animate-spin"></div>
         </div>
-        <div class="flex items-center gap-2">
-          <select
-            v-model="selectedSubject"
-            class="text-xs bg-zinc-100 border border-zinc-200 rounded-lg px-3 py-1.5 text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
-          >
-            <option value="">全学科检索</option>
-            <option v-for="s in subjects" :key="s" :value="s">{{ s }}</option>
-          </select>
+        <div v-else-if="sessions.length === 0" class="text-center py-8 text-zinc-500 text-xs">
+          暂无对话记录
+        </div>
+        <div
+          v-for="s in sessions"
+          :key="s.id"
+          @click="switchSession(s.id)"
+          class="w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors group relative cursor-pointer"
+          :class="currentSessionId === s.id
+            ? 'bg-zinc-700/70 text-white'
+            : 'text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100'"
+        >
+          <div class="flex items-center gap-2 pr-6">
+            <MessageSquare class="w-3.5 h-3.5 flex-shrink-0 opacity-60" />
+            <span class="truncate">{{ s.title || '新对话' }}</span>
+          </div>
+          <p class="text-[10px] mt-0.5 pl-5.5 opacity-50 truncate">
+            {{ formatTime(s.updatedAt) }}
+          </p>
+          <!-- 删除按钮 -->
           <button
-            v-if="messages.length > 0"
-            @click="handleClearHistory"
-            :disabled="clearing"
-            class="text-xs text-zinc-500 hover:text-red-600 border border-zinc-200 hover:border-red-200 rounded-lg px-3 py-1.5 transition-colors flex items-center gap-1"
+            @click.stop="handleDeleteSession(s.id)"
+            class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-500/20 hover:text-red-400 transition-all"
+            title="删除对话"
           >
-            <Trash2 class="w-3 h-3" />
-            {{ clearing ? '清除中...' : '清除对话' }}
+            <Trash2 class="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
-    </header>
 
-    <!-- Chat Area -->
-    <main class="flex-1 max-w-4xl mx-auto w-full px-4 py-6 flex flex-col">
-      <!-- Messages -->
-      <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-4 pb-4">
-        <!-- Loading History -->
-        <div v-if="loadingHistory" class="flex flex-col items-center justify-center py-20 text-center">
-          <div class="flex gap-1 mb-3">
-            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
-            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
-            <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+      <!-- 底部信息 -->
+      <div class="p-3 border-t border-zinc-700/50">
+        <p class="text-[10px] text-zinc-500 text-center">对话记录 24 小时后自动过期</p>
+      </div>
+    </aside>
+
+    <!-- ========== 右侧主区域 ========== -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Header -->
+      <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-200 h-14 flex-shrink-0">
+        <div class="max-w-4xl mx-auto px-4 h-full flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <!-- 侧边栏切换 -->
+            <button
+              @click="sidebarOpen = !sidebarOpen"
+              class="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition-colors"
+              :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
+            >
+              <PanelLeftClose v-if="sidebarOpen" class="w-5 h-5" />
+              <PanelLeftOpen v-else class="w-5 h-5" />
+            </button>
+            <div class="w-px h-4 bg-zinc-300"></div>
+            <h1 class="text-base font-bold tracking-tight flex items-center gap-2">
+              <MessageCircle class="w-4.5 h-4.5 text-indigo-500" />
+              AI 答疑
+            </h1>
           </div>
-          <p class="text-xs text-zinc-400">正在恢复对话历史...</p>
+          <div class="flex items-center gap-2">
+            <select
+              v-model="selectedSubject"
+              class="text-xs bg-zinc-100 border border-zinc-200 rounded-lg px-2.5 py-1.5 text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500"
+            >
+              <option value="">全学科检索</option>
+              <option v-for="s in subjects" :key="s" :value="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <!-- Chat Area -->
+      <main class="flex-1 max-w-4xl w-full mx-auto px-4 py-5 flex flex-col overflow-hidden">
+        <!-- Messages -->
+        <div ref="chatContainer" class="flex-1 overflow-y-auto space-y-4 pb-4">
+          <!-- Loading History -->
+          <div v-if="loadingMessages" class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="flex gap-1 mb-3">
+              <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 0ms"></span>
+              <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 150ms"></span>
+              <span class="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style="animation-delay: 300ms"></span>
+            </div>
+            <p class="text-xs text-zinc-400">正在加载对话...</p>
+          </div>
+
+          <!-- Welcome -->
+          <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+              <BookOpen class="w-8 h-8 text-indigo-500" />
+            </div>
+            <h2 class="text-lg font-bold text-zinc-900">考研知识答疑</h2>
+            <p class="text-sm text-zinc-500 mt-2 max-w-md">
+              基于考研知识库 RAG 增强，为你提供精准的学科解答，附带考点出处。支持多轮对话，自动记忆上下文。
+            </p>
+            <div class="mt-6 grid grid-cols-2 gap-2 w-full max-w-sm">
+              <button
+                v-for="q in quickQuestions"
+                :key="q"
+                @click="sendMessage(q)"
+                class="text-left text-xs px-3 py-2.5 bg-white border border-zinc-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-zinc-600"
+              >
+                {{ q }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Message List -->
+          <template v-for="(msg, idx) in messages" :key="idx">
+            <!-- User Message -->
+            <div v-if="msg.role === 'user'" class="flex justify-end">
+              <div class="max-w-[80%] bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-md space-y-2">
+                <img v-if="msg.imageUrl" :src="msg.imageUrl" class="max-w-full rounded-lg max-h-48 object-cover cursor-pointer" @click="previewImage = msg.imageUrl" />
+                <p v-if="msg.content" class="text-sm">{{ msg.content }}</p>
+              </div>
+            </div>
+
+            <!-- AI Message -->
+            <div v-else class="flex justify-start">
+              <div class="max-w-[85%] space-y-2">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center text-xs">🤖</span>
+                  <span class="text-xs font-bold text-zinc-500">答疑导师</span>
+                  <span v-if="msg.subject" class="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded-md">{{ msg.subject }}</span>
+                  <span v-if="msg.streaming" class="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-md animate-pulse">生成中...</span>
+                </div>
+                <div class="bg-white border border-zinc-200 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm">
+                  <div v-if="msg.degraded" class="mb-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                    <AlertTriangle class="w-3 h-3 flex-shrink-0" />
+                    AI 服务暂时降级，以下为备用回答
+                  </div>
+                  <div class="text-sm leading-relaxed post-content" v-html="renderMarkdown(msg.content)"></div>
+                  <span v-if="msg.streaming" class="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse ml-0.5 align-text-bottom"></span>
+                </div>
+                <!-- 操作按钮：加入错题集 / 已收藏 -->
+                <div v-if="!msg.streaming && msg.content && !msg.content.startsWith('【AI')" class="flex gap-2 mt-1">
+                  <button
+                    v-if="isMsgSaved(msg, idx)"
+                    class="text-[11px] px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center gap-1 cursor-default"
+                  >
+                    <Check class="w-3 h-3" />
+                    已收藏
+                  </button>
+                  <button
+                    v-else
+                    @click="addToMistake(idx)"
+                    class="text-[11px] px-2.5 py-1 rounded-lg bg-zinc-100 text-zinc-500 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 border border-transparent transition-all flex items-center gap-1"
+                  >
+                    <Download class="w-3 h-3" />
+                    加入错题集
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
 
-        <!-- Welcome -->
-        <div v-else-if="messages.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
-          <div class="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-            <BookOpen class="w-8 h-8 text-indigo-500" />
-          </div>
-          <h2 class="text-lg font-bold text-zinc-900">考研知识答疑</h2>
-          <p class="text-sm text-zinc-500 mt-2 max-w-md">
-            基于考研知识库 RAG 增强，为你提供精准的学科解答，附带考点出处。支持多轮对话，24 小时内自动记忆上下文。
-          </p>
-          <div class="mt-6 grid grid-cols-2 gap-2 w-full max-w-sm">
+        <!-- Input Area -->
+        <div class="border-t border-zinc-200 bg-white/80 backdrop-blur-md pt-4 pb-2 -mx-4 px-4 flex-shrink-0">
+          <!-- 图片预览 -->
+          <div v-if="pendingImage" class="mb-3 relative inline-block">
+            <img :src="pendingImage.preview" class="h-20 rounded-lg border border-zinc-200 object-cover" />
             <button
-              v-for="q in quickQuestions"
-              :key="q"
-              @click="sendMessage(q)"
-              class="text-left text-xs px-3 py-2.5 bg-white border border-zinc-200 rounded-xl hover:border-indigo-300 hover:bg-indigo-50/50 transition-all text-zinc-600"
+              @click="removePendingImage"
+              class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+            >×</button>
+            <div v-if="pendingImage.uploading" class="absolute inset-0 bg-white/70 flex items-center justify-center rounded-lg">
+              <div class="w-5 h-5 border-2 border-indigo-300 border-t-indigo-600 rounded-full animate-spin"></div>
+            </div>
+          </div>
+          <p v-if="messages.length > 0 && !loadingMessages" class="text-[10px] text-zinc-400 mb-2 text-center">
+            答疑导师会记住当前对话上下文，24 小时后自动过期。
+          </p>
+          <div class="flex items-end gap-3">
+            <!-- 图片上传按钮 -->
+            <button
+              @click="triggerImageUpload"
+              :disabled="loading || !!pendingImage"
+              class="flex-shrink-0 w-10 h-10 rounded-xl border border-zinc-200 bg-zinc-50 text-zinc-400 flex items-center justify-center hover:bg-zinc-100 hover:text-zinc-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="上传图片"
             >
-              {{ q }}
+              <ImageIcon class="w-4 h-4" />
+            </button>
+            <input ref="imageInputRef" type="file" accept="image/*" class="hidden" @change="handleImageSelect" />
+            <div class="flex-1 relative">
+              <textarea
+                v-model="inputText"
+                @keydown.enter.exact.prevent="handleSend"
+                placeholder="输入你的考研问题... (Enter 发送，支持上传题目图片)"
+                rows="1"
+                class="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
+                style="max-height: 120px"
+                @input="autoResize"
+                ref="textareaRef"
+              ></textarea>
+            </div>
+            <!-- Stop button -->
+            <button
+              v-if="loading"
+              @click="handleStop"
+              class="flex-shrink-0 w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
+              title="停止生成"
+            >
+              <Square class="w-4 h-4" />
+            </button>
+            <!-- Send button -->
+            <button
+              v-else
+              @click="handleSend"
+              :disabled="!inputText.trim()"
+              class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Send class="w-4 h-4" />
             </button>
           </div>
         </div>
+      </main>
+    </div>
 
-        <!-- Message List -->
-        <template v-for="(msg, idx) in messages" :key="idx">
-          <!-- User Message -->
-          <div v-if="msg.role === 'user'" class="flex justify-end">
-            <div class="max-w-[80%] bg-indigo-600 text-white px-4 py-2.5 rounded-2xl rounded-br-md">
-              <p class="text-sm">{{ msg.content }}</p>
-            </div>
-          </div>
+    <!-- 移动端遮罩 -->
+    <div
+      v-if="sidebarOpen"
+      @click="sidebarOpen = false"
+      class="fixed inset-0 bg-black/40 z-40 lg:hidden"
+    ></div>
 
-          <!-- AI Message -->
-          <div v-else class="flex justify-start">
-            <div class="max-w-[85%] space-y-2">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="w-6 h-6 rounded-lg bg-indigo-100 flex items-center justify-center text-xs">🤖</span>
-                <span class="text-xs font-bold text-zinc-500">答疑导师</span>
-                <span v-if="msg.subject" class="text-[10px] px-1.5 py-0.5 bg-zinc-100 text-zinc-500 rounded-md">{{ msg.subject }}</span>
-                <span v-if="msg.streaming" class="text-[10px] px-1.5 py-0.5 bg-indigo-50 text-indigo-500 rounded-md animate-pulse">生成中...</span>
-              </div>
-              <div class="bg-white border border-zinc-200 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm">
-                <div v-if="msg.degraded" class="mb-2 text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
-                  <AlertTriangle class="w-3 h-3 flex-shrink-0" />
-                  AI 服务暂时降级，以下为备用回答
-                </div>
-                <div class="text-sm leading-relaxed post-content" v-html="renderMarkdown(msg.content)"></div>
-                <!-- Streaming cursor -->
-                <span v-if="msg.streaming" class="inline-block w-0.5 h-4 bg-indigo-500 animate-pulse ml-0.5 align-text-bottom"></span>
-              </div>
-            </div>
-          </div>
-        </template>
-      </div>
+    <!-- 图片全屏预览 -->
+    <div
+      v-if="previewImage"
+      @click="previewImage = null"
+      class="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center cursor-zoom-out p-8"
+    >
+      <img :src="previewImage" class="max-w-full max-h-full object-contain rounded-lg" />
+    </div>
 
-      <!-- Input Area -->
-      <div class="border-t border-zinc-200 bg-white/80 backdrop-blur-md pt-4 pb-2 -mx-4 px-4">
-        <p v-if="messages.length > 0 && !loadingHistory" class="text-[10px] text-zinc-400 mb-2 text-center">
-          答疑导师会记住最近 5 轮对话，24 小时后自动过期。点击右上角「清除对话」可手动重置。
-        </p>
-        <div class="flex items-end gap-3">
-          <div class="flex-1 relative">
-            <textarea
-              v-model="inputText"
-              @keydown.enter.exact.prevent="handleSend"
-              placeholder="输入你的考研问题... (Enter 发送)"
-              rows="1"
-              class="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 transition-all"
-              style="max-height: 120px"
-              @input="autoResize"
-              ref="textareaRef"
-            ></textarea>
-          </div>
-          <!-- Stop button (when streaming) -->
-          <button
-            v-if="loading"
-            @click="handleStop"
-            class="flex-shrink-0 w-10 h-10 rounded-xl bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors"
-            title="停止生成"
-          >
-            <Square class="w-4 h-4" />
-          </button>
-          <!-- Send button (when not streaming) -->
-          <button
-            v-else
-            @click="handleSend"
-            :disabled="!inputText.trim()"
-            class="flex-shrink-0 w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <Send class="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </main>
+    <!-- 收藏抽屉 -->
+    <AiSaveDrawer
+      :visible="drawerVisible"
+      :messages="messages"
+      :active-ai-msg-index="drawerActiveAiIdx"
+      :session-id="currentSessionId"
+      @close="drawerVisible = false"
+      @saved="onDrawerSaved"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, nextTick, onMounted } from 'vue'
-import { ArrowLeft, MessageCircle, BookOpen, Send, Trash2, AlertTriangle, Square } from 'lucide-vue-next'
+import {
+  ArrowLeft, MessageCircle, BookOpen, Send, Trash2, AlertTriangle, Square,
+  Plus, MessageSquare, PanelLeftClose, PanelLeftOpen, Image as ImageIcon, Download, Check,
+} from 'lucide-vue-next'
 import { request } from '@/api'
+import { checkSaved } from '@/api/mistake'
 import { renderMarkdown } from '@/utils/markdown'
+import { useRouter, useRoute } from 'vue-router'
+import AiSaveDrawer from '@/components/AiSaveDrawer.vue'
+
+const router = useRouter()
+const route = useRoute()
 
 const subjects = ['数据结构', '操作系统', '计算机网络', '计算机组成原理', '高等数学', '线性代数', '概率论', '英语', '政治']
 
@@ -161,18 +289,32 @@ const quickQuestions = [
   '如何理解概率论中的大数定律？',
 ]
 
+// ---- 状态 ----
+const sidebarOpen = ref(window.innerWidth >= 1024)
 const selectedSubject = ref('')
 const inputText = ref('')
 const loading = ref(false)
-const clearing = ref(false)
-const loadingHistory = ref(false)
+const loadingMessages = ref(false)
+const loadingSessions = ref(false)
 const messages = ref([])
+const sessions = ref([])
+const currentSessionId = ref(null)
 const chatContainer = ref(null)
 const textareaRef = ref(null)
+const imageInputRef = ref(null)
+const previewImage = ref(null)
+const pendingImage = ref(null) // { file, preview, uploading, imageUrl }
+
+// 收藏抽屉状态
+const drawerVisible = ref(false)
+const drawerActiveAiIdx = ref(0)
+const savedMsgIds = ref(new Set()) // 已收藏的消息ID集合
+
 let abortController = null
 
 const getToken = () => localStorage.getItem('token') || ''
 
+// ---- 工具方法 ----
 const autoResize = () => {
   const el = textareaRef.value
   if (!el) return
@@ -187,33 +329,198 @@ const scrollToBottom = async () => {
   }
 }
 
-// 加载对话历史
-const loadHistory = async () => {
-  loadingHistory.value = true
+const formatTime = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const now = new Date()
+  const isToday = d.toDateString() === now.toDateString()
+  const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+  if (isToday) return time
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (d.toDateString() === yesterday.toDateString()) return `昨天 ${time}`
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'short' }) + ' ' + time
+}
+
+// ============================================================
+// 会话管理
+// ============================================================
+
+/** 加载会话列表 */
+const loadSessions = async () => {
+  loadingSessions.value = true
   try {
-    const res = await request('/api/ai/chat/history')
-    if (res.code === 200 && Array.isArray(res.data) && res.data.length > 0) {
-      messages.value = res.data.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-        degraded: false,
-      }))
-      await scrollToBottom()
+    const res = await request('/api/ai/chat/sessions')
+    if (res.code === 200 && Array.isArray(res.data)) {
+      sessions.value = res.data
     }
   } catch (err) {
-    console.error('加载对话历史失败:', err)
+    console.error('加载会话列表失败:', err)
   } finally {
-    loadingHistory.value = false
+    loadingSessions.value = false
   }
 }
 
+/** 加载指定会话的消息 */
+const loadMessages = async (sessionId) => {
+  loadingMessages.value = true
+  messages.value = []
+  try {
+    const res = await request(`/api/ai/chat/sessions/${sessionId}/messages`)
+    if (res.code === 200 && Array.isArray(res.data)) {
+      messages.value = res.data.map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        imageUrl: msg.imageUrl || null,
+        degraded: false,
+      }))
+      await scrollToBottom()
+      // 检查已收藏状态
+      checkSavedStatus()
+    }
+  } catch (err) {
+    console.error('加载消息失败:', err)
+  } finally {
+    loadingMessages.value = false
+  }
+}
+
+/** 新建会话 */
+const handleNewSession = async () => {
+  try {
+    const res = await request('/api/ai/chat/sessions', { method: 'POST' })
+    if (res.code === 200 && res.data) {
+      const newSession = res.data
+      sessions.value.unshift(newSession)
+      currentSessionId.value = newSession.id
+      messages.value = []
+      await scrollToBottom()
+    }
+  } catch (err) {
+    console.error('新建会话失败:', err)
+  }
+}
+
+/** 切换会话 */
+const switchSession = async (sessionId) => {
+  if (currentSessionId.value === sessionId && messages.value.length > 0) return
+  currentSessionId.value = sessionId
+  await loadMessages(sessionId)
+  // 移动端自动收起侧栏
+  if (window.innerWidth < 1024) sidebarOpen.value = false
+}
+
+/** 删除会话 */
+const handleDeleteSession = async (sessionId) => {
+  try {
+    const res = await request(`/api/ai/chat/sessions/${sessionId}`, { method: 'DELETE' })
+    if (res.code === 200) {
+      sessions.value = sessions.value.filter((s) => s.id !== sessionId)
+      // 如果删除的是当前会话，切到第一个或清空
+      if (currentSessionId.value === sessionId) {
+        if (sessions.value.length > 0) {
+          await switchSession(sessions.value[0].id)
+        } else {
+          currentSessionId.value = null
+          messages.value = []
+        }
+      }
+    }
+  } catch (err) {
+    console.error('删除会话失败:', err)
+  }
+}
+
+// ============================================================
+// 图片上传
+// ============================================================
+
+const triggerImageUpload = () => {
+  imageInputRef.value?.click()
+}
+
+const handleImageSelect = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  // 清空 input 以允许重复选同一文件
+  e.target.value = ''
+
+  const preview = URL.createObjectURL(file)
+  pendingImage.value = { file, preview, uploading: true, imageUrl: null }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await request('/api/upload/image', { method: 'POST', body: formData })
+    if (res.code === 200) {
+      const url = res.data?.url || res.data
+      pendingImage.value.imageUrl = url
+      pendingImage.value.uploading = false
+    } else {
+      window.dispatchEvent(new CustomEvent('app-toast', {
+        detail: { type: 'error', message: '图片上传失败' },
+      }))
+      pendingImage.value = null
+    }
+  } catch (err) {
+    console.error('图片上传失败:', err)
+    window.dispatchEvent(new CustomEvent('app-toast', {
+      detail: { type: 'error', message: '图片上传失败' },
+    }))
+    pendingImage.value = null
+  }
+}
+
+const removePendingImage = () => {
+  if (pendingImage.value?.preview) URL.revokeObjectURL(pendingImage.value.preview)
+  pendingImage.value = null
+}
+
+// ============================================================
+// 加入错题集
+// ============================================================
+
+const addToMistake = (aiMsgIdx) => {
+  drawerActiveAiIdx.value = aiMsgIdx
+  drawerVisible.value = true
+}
+
+const onDrawerSaved = (noteId) => {
+  // 标记当前 AI 消息为已收藏
+  const aiMsg = messages.value[drawerActiveAiIdx.value]
+  if (aiMsg) {
+    savedMsgIds.value.add(aiMsg.id || drawerActiveAiIdx.value)
+  }
+}
+
+// 批量检查已收藏状态
+const checkSavedStatus = async () => {
+  const ids = messages.value.filter(m => m.id && m.role === 'assistant').map(m => m.id)
+  if (ids.length === 0) return
+  try {
+    const res = await checkSaved(ids)
+    if (res.code === 200 && res.data) {
+      savedMsgIds.value = new Set(res.data.savedIds)
+    }
+  } catch {}
+}
+
+const isMsgSaved = (msg, idx) => {
+  return msg.id ? savedMsgIds.value.has(msg.id) : false
+}
+
+// ============================================================
+// 消息发送（SSE 流式）
+// ============================================================
+
 const handleSend = () => {
   const text = inputText.value.trim()
-  if (!text || loading.value) return
+  const hasImage = pendingImage.value?.imageUrl
+  if ((!text && !hasImage) || loading.value) return
   sendMessage(text)
 }
 
-// 中止当前流式请求
 const handleStop = () => {
   if (abortController) {
     abortController.abort()
@@ -221,14 +528,22 @@ const handleStop = () => {
   }
 }
 
-// SSE 流式发送消息
 const sendMessage = async (text) => {
+  // Capture image before clearing
+  const imageUrl = pendingImage.value?.imageUrl || null
+
   // Add user message
-  messages.value.push({ role: 'user', content: text })
+  const userMsg = { role: 'user', content: text }
+  if (imageUrl) userMsg.imageUrl = imageUrl
+  messages.value.push(userMsg)
   inputText.value = ''
   if (textareaRef.value) textareaRef.value.style.height = 'auto'
 
-  // Add placeholder AI message for streaming
+  // Clear pending image
+  if (pendingImage.value?.preview) URL.revokeObjectURL(pendingImage.value.preview)
+  pendingImage.value = null
+
+  // Add placeholder AI message
   const aiMsgIndex = messages.value.length
   messages.value.push({
     role: 'assistant',
@@ -243,8 +558,10 @@ const sendMessage = async (text) => {
   abortController = new AbortController()
 
   try {
-    const body = { question: text }
+    const body = { question: text || '请分析这张题目图片' }
+    if (currentSessionId.value) body.sessionId = currentSessionId.value
     if (selectedSubject.value) body.subject = selectedSubject.value
+    if (imageUrl) body.imageUrl = imageUrl
 
     const response = await fetch('/api/ai/ask/stream', {
       method: 'POST',
@@ -256,22 +573,19 @@ const sendMessage = async (text) => {
       signal: abortController.signal,
     })
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
-    let buffer = '' // 缓存跨 read() 边界的不完整行
+    let buffer = ''
 
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
 
       buffer += decoder.decode(value, { stream: true })
-      // 按换行切分，最后一段可能是不完整的行，保留在 buffer 中
       const lines = buffer.split('\n')
-      buffer = lines.pop() || '' // 最后一段不完整，留到下次
+      buffer = lines.pop() || ''
 
       for (const line of lines) {
         if (!line.startsWith('data:')) continue
@@ -280,37 +594,64 @@ const sendMessage = async (text) => {
         if (!payload) continue
         try {
           const parsed = JSON.parse(payload)
-          if (parsed.content) {
-            messages.value[aiMsgIndex].content += parsed.content
+          // 后端第一个事件是 meta（含 sessionId + title）
+          if (parsed.type === 'meta') {
+            currentSessionId.value = parsed.sessionId
+            // 更新或插入会话列表
+            const existing = sessions.value.find((s) => s.id === parsed.sessionId)
+            if (existing) {
+              existing.title = parsed.title
+            } else {
+              sessions.value.unshift({
+                id: parsed.sessionId,
+                title: parsed.title,
+                updatedAt: new Date().toISOString(),
+              })
+            }
+            continue
           }
+          if (parsed.content) messages.value[aiMsgIndex].content += parsed.content
         } catch {
-          console.warn('[SSE] JSON 解析失败:', payload.slice(0, 100))
           messages.value[aiMsgIndex].content += payload
         }
       }
       await scrollToBottom()
     }
-    // 处理 buffer 中最后残留的数据
+
+    // 处理 buffer 残留
     if (buffer.startsWith('data:')) {
       const payload = buffer.slice(5).trim()
       if (payload && payload !== '[DONE]') {
         try {
           const parsed = JSON.parse(payload)
-          if (parsed.content) messages.value[aiMsgIndex].content += parsed.content
+          if (parsed.type === 'meta') {
+            currentSessionId.value = parsed.sessionId
+            const existing = sessions.value.find((s) => s.id === parsed.sessionId)
+            if (existing) {
+              existing.title = parsed.title
+            } else {
+              sessions.value.unshift({
+                id: parsed.sessionId,
+                title: parsed.title,
+                updatedAt: new Date().toISOString(),
+              })
+            }
+          } else if (parsed.content) {
+            messages.value[aiMsgIndex].content += parsed.content
+          }
         } catch {}
       }
     }
 
-    // Stream finished — check for degradation
     const finalContent = messages.value[aiMsgIndex].content
-    if (!finalContent.trim()) {
-      messages.value[aiMsgIndex].content = '抱歉，暂时无法回答该问题。'
-    }
+    if (!finalContent.trim()) messages.value[aiMsgIndex].content = '抱歉，暂时无法回答该问题。'
     messages.value[aiMsgIndex].degraded = finalContent.startsWith('【AI')
     messages.value[aiMsgIndex].streaming = false
+
+    // 刷新会话列表（标题可能已更新）
+    loadSessions()
   } catch (err) {
     if (err.name === 'AbortError') {
-      // User cancelled
       messages.value[aiMsgIndex].streaming = false
       if (!messages.value[aiMsgIndex].content.trim()) {
         messages.value[aiMsgIndex].content = '（已取消生成）'
@@ -327,24 +668,11 @@ const sendMessage = async (text) => {
   }
 }
 
-const handleClearHistory = async () => {
-  clearing.value = true
-  try {
-    const res = await request('/api/ai/chat/history', { method: 'DELETE' })
-    if (res.code === 200) {
-      messages.value = []
-      window.dispatchEvent(new CustomEvent('app-toast', {
-        detail: { type: 'info', message: '对话历史已清除，答疑导师已重置记忆。' },
-      }))
-    }
-  } catch (err) {
-    console.error('清除对话历史失败:', err)
-  } finally {
-    clearing.value = false
-  }
-}
+// ============================================================
+// 初始化
+// ============================================================
 
-onMounted(() => {
+onMounted(async () => {
   const token = getToken()
   if (!token) {
     window.dispatchEvent(new CustomEvent('app-toast', {
@@ -352,7 +680,11 @@ onMounted(() => {
     }))
     return
   }
-  loadHistory()
+  await loadSessions()
+  // 自动选中最新会话
+  if (sessions.value.length > 0) {
+    await switchSession(sessions.value[0].id)
+  }
 })
 </script>
 
@@ -369,6 +701,14 @@ onMounted(() => {
 }
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #d4d4d8;
+}
+
+/* 侧栏滚动条 */
+aside .overflow-y-auto::-webkit-scrollbar-thumb {
+  background: #52525b;
+}
+aside .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+  background: #71717a;
 }
 
 /* Markdown content styling */

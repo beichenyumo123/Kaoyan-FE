@@ -60,6 +60,17 @@
         class="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm"
         style="height: calc(100vh - 300px); min-height: 500px;"
       >
+        <!-- 自定义工具栏：视频上传 -->
+        <div class="flex items-center gap-2 px-4 py-2 border-b border-zinc-100 bg-zinc-50/50">
+          <button
+            @click="triggerVideoUpload"
+            class="flex items-center gap-1.5 px-3 py-1.5 text-xs text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200/60 rounded-md transition-colors"
+            title="上传视频"
+          >
+            <Video class="w-4 h-4" />
+            <span>视频</span>
+          </button>
+        </div>
         <MdEditor
           v-model="postForm.content"
           theme="light"
@@ -70,6 +81,14 @@
           :onUploadImg="handleUploadImage"
           preview-theme="github"
           placeholder="分享你的考研经验、提问或分享资料...&#10;&#10;支持 Markdown 语法：&#10;- **加粗** `代码`&#10;- # 标题&#10;- [链接](url) ![图片](url)"
+        />
+        <!-- 隐藏的视频文件输入 -->
+        <input
+          ref="videoInputRef"
+          type="file"
+          accept="video/mp4,video/webm,video/quicktime,video/x-msvideo"
+          class="hidden"
+          @change="handleVideoUpload"
         />
       </div>
 
@@ -112,11 +131,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { X, Send } from 'lucide-vue-next'
+import { X, Send, Video } from 'lucide-vue-next'
 import { MdEditor } from 'md-editor-v3'
 import { renderMarkdown } from '@/utils/markdown'
 
 const router = useRouter()
+const videoInputRef = ref(null)
 
 // Markdown 编辑器工具栏
 const toolbars = [
@@ -214,6 +234,60 @@ const handleUploadImage = async (files, callback) => {
     }
   }
   if (urls.length > 0) callback(urls)
+}
+
+// 视频上传处理
+const handleVideoUpload = async (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  const token = getToken()
+  if (!token) {
+    alert('请先登录后再上传视频')
+    return
+  }
+
+  // 验证文件类型
+  const allowedTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo']
+  if (!allowedTypes.includes(file.type)) {
+    alert('仅支持 mp4、webm、mov、avi 格式的视频')
+    return
+  }
+
+  // 验证文件大小 (100MB)
+  if (file.size > 100 * 1024 * 1024) {
+    alert('视频文件大小不能超过100MB')
+    return
+  }
+
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/upload/video', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    })
+    const result = await res.json()
+    if (result.code === 200 && result.data?.url) {
+      // 插入 video 标签到编辑器
+      const videoTag = `\n<video src="${result.data.url}" controls width="100%"></video>\n`
+      postForm.content += videoTag
+    } else {
+      alert(result.message || result.msg || '视频上传失败')
+    }
+  } catch (e) {
+    console.error('视频上传异常:', e)
+    alert('视频上传失败，请稍后重试')
+  }
+
+  // 清空 input
+  event.target.value = ''
+}
+
+// 触发视频选择
+const triggerVideoUpload = () => {
+  videoInputRef.value?.click()
 }
 
 // 标签操作

@@ -440,7 +440,8 @@ async function selectCalendarDay(date: string) {
   try {
     const result = await getCalendarDayNotes(date, { size: 50 })
     if (result.code === 200 && result.data) {
-      selectedDayItems.value = result.data.records || []
+      const d = result.data as any
+      selectedDayItems.value = d.records || d.list || []
     }
   } catch {
     selectedDayItems.value = []
@@ -483,7 +484,8 @@ async function fetchTodayItems() {
   try {
     const result = await getTodayReview({ size: 50 })
     if (result.code === 200 && result.data) {
-      todayItems.value = result.data.records || []
+      const d = result.data as any
+      todayItems.value = d.records || d.list || []
     }
   } catch (err) {
     console.error('获取复习计划失败:', err)
