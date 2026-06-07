@@ -99,3 +99,13 @@ http://localhost:8081/swagger-ui.html
 - `双创功能拓展规划（修订版）.md` — 完整功能规划（25条 + 双创创新点）
 - `功能拓展总结.md` — 已实现功能清单
 - `src/main/resources/sql/school_select_seed.sql` — 择校引擎建表+种子数据
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

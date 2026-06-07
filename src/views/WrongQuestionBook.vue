@@ -163,58 +163,49 @@
             v-for="question in filteredQuestions"
             :key="question.id"
             @click="goToDetail(question.id)"
-            class="bg-white border border-zinc-200 rounded-2xl p-5 cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all duration-300 active:scale-[0.98]"
+            class="bg-white border border-zinc-200 rounded-2xl overflow-hidden cursor-pointer hover:shadow-md hover:-translate-y-1 transition-all duration-300 active:scale-[0.98]"
           >
-            <div :class="['flex gap-4', viewMode === 'list' ? 'items-center' : '']">
-              <!-- Thumbnail -->
-              <div
-                v-if="question.imageUrl"
-                class="w-20 h-20 rounded-xl overflow-hidden bg-zinc-100 flex-shrink-0 border border-zinc-200"
-              >
-                <img
-                  :src="question.imageUrl"
-                  alt="题目图片"
-                  class="w-full h-full object-cover"
-                />
-              </div>
-              <div
-                v-else
-                class="w-20 h-20 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0 border border-zinc-200"
-              >
-                <FileText :size="28" class="text-zinc-300" />
-              </div>
+            <!-- 图片题：大图展示 -->
+            <div v-if="question.imageUrl" class="w-full h-36 bg-zinc-50 border-b border-zinc-100 flex items-center justify-center overflow-hidden">
+              <img
+                :src="question.imageUrl"
+                alt="题目图片"
+                class="w-full h-full object-contain"
+              />
+            </div>
 
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <p class="text-sm text-zinc-700 line-clamp-2 mb-2 leading-relaxed">
-                  {{ question.questionContent || '未识别文本内容' }}
-                </p>
-                <div class="flex flex-wrap items-center gap-1.5">
-                  <SubjectIcon :subject="question.subject" />
-                  <MasteryBadge :level="question.masteryLevel" />
-                  <span
-                    v-for="kp in question.knowledgePoints?.slice(0, 2)"
-                    :key="kp.id"
-                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-zinc-100 text-zinc-500"
-                  >
-                    {{ kp.name }}
+            <div class="p-4">
+              <!-- 文字题：显示题目内容 -->
+              <p v-if="!question.imageUrl" class="text-sm text-zinc-700 line-clamp-2 mb-2 leading-relaxed">
+                {{ question.questionContent || '未识别文本内容' }}
+              </p>
+
+              <!-- 元信息 -->
+              <div class="flex flex-wrap items-center gap-1.5">
+                <SubjectIcon :subject="question.subject" />
+                <MasteryBadge :level="question.masteryLevel" />
+                <span
+                  v-for="kp in question.knowledgePoints?.slice(0, 2)"
+                  :key="kp.id"
+                  class="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-zinc-100 text-zinc-500"
+                >
+                  {{ kp.name }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between mt-2">
+                <span class="text-xs text-zinc-400">{{ formatDaysSince(question.createdAt) }}</span>
+                <div class="flex items-center gap-2 text-xs text-zinc-400">
+                  <span v-if="question.reviewCount > 0" class="flex items-center gap-1">
+                    <RotateCcw :size="11" />
+                    已复习{{ question.reviewCount }}次
                   </span>
-                </div>
-                <div class="flex items-center justify-between mt-2">
-                  <span class="text-xs text-zinc-400">{{ formatDaysSince(question.createdAt) }}</span>
-                  <div class="flex items-center gap-2 text-xs text-zinc-400">
-                    <span v-if="question.reviewCount > 0" class="flex items-center gap-1">
-                      <RotateCcw :size="11" />
-                      已复习{{ question.reviewCount }}次
-                    </span>
-                    <span
-                      v-if="question.nextReviewDate && isDueToday(question.nextReviewDate)"
-                      class="text-red-500 font-medium flex items-center gap-1"
-                    >
-                      <Bell :size="11" />
-                      待复习
-                    </span>
-                  </div>
+                  <span
+                    v-if="question.nextReviewDate && isDueToday(question.nextReviewDate)"
+                    class="text-red-500 font-medium flex items-center gap-1"
+                  >
+                    <Bell :size="11" />
+                    待复习
+                  </span>
                 </div>
               </div>
             </div>
@@ -366,8 +357,10 @@ async function fetchQuestions() {
       subject: filterSubject.value || undefined,
     })
     if (result.code === 200 && result.data) {
-      questions.value = (result.data.records || []).map((dto) => toMistakeNoteVO(dto))
-      totalPages.value = result.data.pages || 1
+      const data = result.data as any
+      const list = data.records || data.list || []
+      questions.value = list.map((dto: any) => toMistakeNoteVO(dto))
+      totalPages.value = data.pages || 1
     }
   } catch (err) {
     console.error('获取错题列表失败:', err)
@@ -381,7 +374,7 @@ async function fetchReviewCount() {
     const result = await getTodayReview()
     if (result.code === 200 && result.data) {
       const data = result.data as any
-      const records = data.records || data
+      const records = data.records || data.list || data
       reviewCount.value = Array.isArray(records) ? records.length : (records.total || 0)
     }
   } catch (err) {

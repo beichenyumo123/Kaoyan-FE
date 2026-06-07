@@ -20,16 +20,32 @@
           </el-select>
         </el-form-item>
         <el-form-item label="对话模式">
-          <el-radio-group v-model="form.interactionMode">
-            <el-radio value="text">文字输入</el-radio>
-            <el-radio value="realtime">实时语音对话</el-radio>
-            <el-radio value="video">视频模式（进阶）</el-radio>
-          </el-radio-group>
-          <div class="mode-hint" v-if="form.interactionMode === 'realtime'">
-            像打电话一样自由对话，说完停顿1.8秒自动提交，AI播报完毕后自动继续聆听
+          <div class="mode-cards">
+            <div
+              class="mode-card"
+              :class="{ active: form.interactionMode === 'text' }"
+              @click="form.interactionMode = 'text'"
+            >
+              <div class="mode-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+              </div>
+              <div class="mode-card-title">文字输入</div>
+              <div class="mode-card-desc">键盘输入回答，适合安静环境</div>
+            </div>
+            <div
+              class="mode-card"
+              :class="{ active: form.interactionMode === 'realtime' }"
+              @click="form.interactionMode = 'realtime'"
+            >
+              <div class="mode-card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+              </div>
+              <div class="mode-card-title">实时语音对话</div>
+              <div class="mode-card-desc">像打电话一样自由对话，说完自动提交</div>
+            </div>
           </div>
-          <div class="mode-hint" v-if="form.interactionMode === 'video'">
-            开启摄像头，实时分析眼神交流、坐姿、表情等仪态。语音对话方式与"实时语音对话"一致。
+          <div class="mode-hint" v-if="form.interactionMode === 'realtime'">
+            说完停顿1.8秒自动提交，AI播报完毕后自动继续聆听
           </div>
         </el-form-item>
         <el-form-item>
@@ -50,41 +66,8 @@
         >
         <el-tag :type="typeTagColor">{{ typeLabel }}</el-tag>
         <el-tag v-if="session.status === 'IN_PROGRESS'" type="success">进行中</el-tag>
-        <span v-if="isRealtime && !isVideo" class="realtime-badge">实时语音</span>
-        <span v-if="isVideo" class="realtime-badge video-badge">视频模式</span>
+        <span v-if="isRealtime" class="realtime-badge">实时语音</span>
         <div class="header-right" v-if="isRealtime">
-          <template v-if="isVideo && demeanor.cameraReady.value">
-            <span
-              class="demeanor-indicator"
-              :class="demeanor.eyeContact.value >= 70 ? 'good' : 'warn'"
-            >
-              眼神 {{ demeanor.eyeContact.value }}%
-            </span>
-            <span
-              class="demeanor-indicator"
-              :class="demeanor.postureScore.value >= 70 ? 'good' : 'warn'"
-            >
-              坐姿 {{ demeanor.postureScore.value }}%
-            </span>
-            <span
-              class="demeanor-indicator"
-              :class="
-                demeanor.expression.value === 'smiling'
-                  ? 'good'
-                  : demeanor.expression.value === 'nervous'
-                    ? 'warn'
-                    : ''
-              "
-            >
-              {{ expressionLabel }}
-            </span>
-            <span
-              class="demeanor-indicator"
-              :class="demeanor.blinkRate.value <= 25 ? 'good' : 'warn'"
-            >
-              眨眼 {{ demeanor.blinkRate.value }}/分
-            </span>
-          </template>
           <span :class="['conn-state', connState]">{{ connStateLabel }}</span>
           <el-switch
             v-model="ttsEnabled"
@@ -119,10 +102,6 @@
         <div v-if="isRealtime && isListening && liveTranscript" class="msg msg-user live-msg">
           <div class="msg-label">正在聆听</div>
           <div class="msg-text">{{ liveTranscript }}</div>
-        </div>
-        <!-- 视频模式：摄像头 PiP -->
-        <div v-if="isVideo && demeanor.cameraReady.value" class="camera-pip">
-          <video ref="pipVideoRef" autoplay playsinline muted class="camera-pip-video" />
         </div>
       </div>
 
@@ -188,57 +167,16 @@
       <h4>综合评价</h4>
       <p class="report-text">{{ report.summary }}</p>
 
-      <!-- 视频模式：仪态分析 -->
-      <div v-if="report.demeanorAnalysis" class="demeanor-report">
-        <h4>仪态分析（摄像头采集）</h4>
-        <div class="demeanor-metrics">
-          <div class="demeanor-metric-item">
-            <span class="demeanor-metric-label">眼神交流</span>
-            <span
-              class="demeanor-metric-value"
-              :class="report.demeanorAnalysis.averageEyeContact >= 70 ? 'good' : 'warn'"
-            >
-              {{ report.demeanorAnalysis.averageEyeContact }}分
-            </span>
-          </div>
-          <div class="demeanor-metric-item">
-            <span class="demeanor-metric-label">坐姿仪态</span>
-            <span
-              class="demeanor-metric-value"
-              :class="report.demeanorAnalysis.averagePosture >= 70 ? 'good' : 'warn'"
-            >
-              {{ report.demeanorAnalysis.averagePosture }}分
-            </span>
-          </div>
-          <div class="demeanor-metric-item">
-            <span class="demeanor-metric-label">眨眼频率</span>
-            <span
-              class="demeanor-metric-value"
-              :class="report.demeanorAnalysis.averageBlinkRate <= 25 ? 'good' : 'warn'"
-            >
-              {{ report.demeanorAnalysis.averageBlinkRate }}/分
-            </span>
-          </div>
-          <div class="demeanor-metric-item">
-            <span class="demeanor-metric-label">主要表情</span>
-            <span class="demeanor-metric-value">
-              {{ report.demeanorAnalysis.dominantExpression }}
-            </span>
-          </div>
-        </div>
-        <p class="report-text">{{ report.demeanorAnalysis.suggestion }}</p>
-      </div>
-
       <el-button type="primary" @click="resetAll" style="margin-top: 20px">重新开始</el-button>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, nextTick, watch, onUnmounted } from 'vue'
+import { ref, reactive, computed, nextTick, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as api from '@/api/interview'
-import { useDemeanor } from '@/composables/useDemeanor'
+
 
 // ============================================================
 // 类型定义
@@ -283,13 +221,12 @@ const creating = ref(false)
 const aiThinking = ref(false)
 const userAnswer = ref('')
 const chatBox = ref<HTMLElement | null>(null)
-const pipVideoRef = ref<HTMLVideoElement | null>(null)
 
 const form = reactive({
   targetSchool: '',
   targetMajor: '',
   interviewType: 'COMPREHENSIVE',
-  interactionMode: 'text' as 'text' | 'realtime' | 'video',
+  interactionMode: 'text' as 'text' | 'realtime',
 })
 
 const session = reactive<SessionInfo>({
@@ -307,9 +244,7 @@ const voiceSupported = ref(
   typeof window !== 'undefined' &&
     (!!('SpeechRecognition' in window) || !!('webkitSpeechRecognition' in window)),
 )
-const isRealtime = computed(
-  () => form.interactionMode === 'realtime' || form.interactionMode === 'video',
-)
+const isRealtime = computed(() => form.interactionMode === 'realtime')
 
 // 实时语音状态
 const isListening = ref(false)
@@ -335,11 +270,6 @@ const connStateLabel = computed(
 const ttsEnabled = ref(true)
 const ttsAudioRef = ref<HTMLAudioElement | null>(null)
 
-// ---- 视频仪态分析 ----
-const demeanor = useDemeanor()
-const isVideo = computed(() => form.interactionMode === 'video')
-const demeanorSnapshots: any[] = []
-
 // ============================================================
 // 计算属性
 // ============================================================
@@ -360,26 +290,6 @@ const typeLabel = computed(
       MAJOR: '专业课面试',
       COMPREHENSIVE: '综合面试',
     })[session.interviewType] ?? '',
-)
-
-const expressionLabel = computed(
-  () =>
-    ({
-      smiling: '微笑',
-      nervous: '紧张',
-      neutral: '自然',
-    })[demeanor.expression.value] ?? '自然',
-)
-
-// 摄像头 PiP
-watch(
-  [() => demeanor.cameraReady.value, () => demeanor.streamRef.value],
-  async ([ready, s]) => {
-    if (ready && s) {
-      await nextTick()
-      if (pipVideoRef.value) pipVideoRef.value.srcObject = s
-    }
-  },
 )
 
 // ============================================================
@@ -525,15 +435,6 @@ async function handleCreate() {
     scrollDown()
 
     if (isRealtime.value) {
-      if (isVideo.value) {
-        try {
-          await demeanor.startCamera()
-        } catch (e: any) {
-          console.warn('摄像头启动失败:', e.message)
-          ElMessage.warning('摄像头不可用，已降级为纯语音模式')
-        }
-        if (demeanor.cameraReady.value) await demeanor.startAnalysis()
-      }
       await speakText(aiRes.data?.content)
       connState.value = 'idle'
       startRealtimeListening()
@@ -559,15 +460,10 @@ async function submitAnswer(answer: string, speechDuration: number | null) {
   messages.value.push({ role: 'user', content: answer, fluencyScore: localFluency })
   scrollDown()
 
-  // 视频模式：每轮提交前采集仪态快照
-  const snap =
-    isVideo.value && demeanor.cameraReady.value ? demeanor.takeSnapshot() : null
-  if (snap) demeanorSnapshots.push(snap)
-
   aiThinking.value = true
   if (isRealtime.value) connState.value = 'thinking'
   try {
-    const aiRes = await api.sendAnswer(session.id!, answer, speechDuration, snap)
+    const aiRes = await api.sendAnswer(session.id!, answer, speechDuration)
     messages.value.push({ role: 'ai', content: aiRes.data?.content })
     if (speechDuration != null) refreshFluencyScores()
     scrollDown()
@@ -623,15 +519,10 @@ async function handleFinish() {
   }
 
   stopRealtimeListening()
-  const demeanorSummary =
-    isVideo.value && demeanorSnapshots.length > 0
-      ? demeanor.summarize(demeanorSnapshots)
-      : null
-  if (demeanor.cameraReady.value) demeanor.stopAnalysis()
 
   aiThinking.value = true
   try {
-    const res = await api.finishInterview(session.id!, demeanorSummary)
+    const res = await api.finishInterview(session.id!)
     report.value = res.data
     session.status = 'REPORTED'
     phase.value = 'report'
@@ -644,8 +535,6 @@ async function handleFinish() {
 
 function resetAll() {
   stopRealtimeListening()
-  demeanor.stopCamera()
-  demeanorSnapshots.length = 0
   phase.value = 'create'
   messages.value = []
   report.value = {}
@@ -666,7 +555,6 @@ function resetAll() {
 }
 
 onUnmounted(() => {
-  demeanor.stopCamera()
   stopRealtimeListening()
 })
 
@@ -697,8 +585,58 @@ async function scrollDown() {
 .mode-hint {
   color: #909399;
   font-size: 13px;
-  margin-top: 4px;
+  margin-top: 12px;
   line-height: 1.6;
+  text-align: center;
+}
+
+/* ---- 模式选择卡片 ---- */
+.mode-cards {
+  display: flex;
+  gap: 14px;
+}
+.mode-card {
+  flex: 1;
+  padding: 18px 14px 16px;
+  border-radius: 12px;
+  border: 2px solid #e4e7ed;
+  background: #fff;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s;
+  user-select: none;
+}
+.mode-card:hover {
+  border-color: #b3d8ff;
+  background: #f5f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
+}
+.mode-card.active {
+  border-color: #409eff;
+  background: #ecf5ff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+}
+.mode-card-icon {
+  margin-bottom: 8px;
+  color: #909399;
+  display: flex;
+  justify-content: center;
+  transition: color 0.25s;
+}
+.mode-card.active .mode-card-icon {
+  color: #409eff;
+}
+.mode-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+.mode-card-desc {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.5;
 }
 
 /* ---- chat ---- */
@@ -867,43 +805,6 @@ async function scrollDown() {
   margin-bottom: 8px;
 }
 
-/* ---- 视频模式 ---- */
-.video-badge {
-  background: #e6f0ff;
-  color: #409eff;
-}
-.demeanor-indicator {
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-  background: #f0f9eb;
-  color: #67c23a;
-}
-.demeanor-indicator.warn {
-  background: #fef0f0;
-  color: #f56c6c;
-}
-.camera-pip {
-  position: absolute;
-  bottom: 12px;
-  right: 12px;
-  width: 140px;
-  height: 105px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 2px solid rgba(64, 158, 255, 0.5);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  background: #000;
-  z-index: 10;
-}
-.camera-pip-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1);
-}
-
 /* ---- report ---- */
 .report-card {
   max-width: 600px;
@@ -986,40 +887,4 @@ h4 {
   animation: pulse 0.6s infinite;
 }
 
-.demeanor-report {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #ebeef5;
-}
-.demeanor-metrics {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-.demeanor-metric-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #f5f7fa;
-  border-radius: 8px;
-  padding: 10px 16px;
-  min-width: 90px;
-}
-.demeanor-metric-label {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 4px;
-}
-.demeanor-metric-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #303133;
-}
-.demeanor-metric-value.good {
-  color: #67c23a;
-}
-.demeanor-metric-value.warn {
-  color: #e6a23c;
-}
 </style>

@@ -87,9 +87,7 @@
               <!-- Answer Card -->
               <div v-if="question.answer" class="bg-white border border-zinc-200 rounded-2xl p-6">
                 <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">解答笔记</h3>
-                <div class="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                  {{ question.answer }}
-                </div>
+                <div class="text-sm text-zinc-700 leading-relaxed post-content" v-html="renderMarkdown(question.answer)"></div>
               </div>
             </div>
 
@@ -512,6 +510,7 @@ import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
 import { formatDaysSince, getReviewStage } from '@/utils/ebbinghaus'
 import { exportQuestionsToPdf } from '@/utils/pdf-export'
 import { toMistakeNoteVO, masteryLevelToScore } from '@/utils/adapters'
+import { renderMarkdown } from '@/utils/markdown'
 import {
   getNoteById, updateNote, deleteNote, completeReview, exportServerPdf,
 } from '@/api/mistake'
@@ -790,4 +789,52 @@ onMounted(() => {
   opacity: 0;
   transform: translate(-50%, -5px);
 }
+
+/* Markdown content styling */
+.post-content {
+  overflow-x: auto;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.post-content :deep(.katex-display) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  margin: 0.75rem 0;
+}
+.post-content :deep(h1) { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; }
+.post-content :deep(h2) { font-size: 1.125rem; font-weight: 700; margin: 0.75rem 0 0.5rem; }
+.post-content :deep(h3) { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+.post-content :deep(p) { margin: 0.375rem 0; line-height: 1.7; }
+.post-content :deep(ul),
+.post-content :deep(ol) { padding-left: 1.25rem; margin: 0.375rem 0; }
+.post-content :deep(li) { margin: 0.25rem 0; }
+.post-content :deep(code) {
+  background: #f4f4f5;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.8rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+.post-content :deep(pre) {
+  background: #18181b;
+  color: #e4e4e7;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.post-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.post-content :deep(blockquote) {
+  border-left: 3px solid #d4d4d8;
+  padding-left: 0.75rem;
+  color: #71717a;
+  margin: 0.5rem 0;
+}
+.post-content :deep(strong) { font-weight: 600; }
+.post-content :deep(a) { color: #4f46e5; text-decoration: underline; }
 </style>

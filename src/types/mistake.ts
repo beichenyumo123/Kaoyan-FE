@@ -91,6 +91,16 @@ export interface CreateNoteReq {
   difficulty?: number // 1-5
 }
 
+export interface QuickSaveReq {
+  subject: string
+  questionContent: string
+  answer?: string
+  imageUrl?: string
+  chatMessageIds: number[]
+  sessionId: number
+  sourceType?: string
+}
+
 export interface UpdateNoteReq {
   id: number
   questionContent?: string
@@ -211,10 +221,12 @@ export interface NotificationDto {
 // ============================================================
 
 export interface PageResult<T> {
-  records: T[]
+  records?: T[]  // MyBatis-Plus Page
+  list?: T[]     // PageHelper PageInfo
   total: number
   size: number
   current: number
+  pageNum: number
   pages: number
 }
 
