@@ -86,19 +86,6 @@
             </span>
           </template>
           <span :class="['conn-state', connState]">{{ connStateLabel }}</span>
-          <el-select
-            v-if="ttsEnabled && availableVoices.length > 0"
-            v-model="selectedVoiceName"
-            size="small"
-            style="width: 120px; margin-left: 8px"
-          >
-            <el-option
-              v-for="v in availableVoices"
-              :key="v.name"
-              :label="v.name"
-              :value="v.name"
-            />
-          </el-select>
           <el-switch
             v-model="ttsEnabled"
             active-text="播报"
@@ -345,9 +332,8 @@ const connStateLabel = computed(
 )
 
 // TTS
-const availableVoices = ref<SpeechSynthesisVoice[]>([])
-const selectedVoiceName = ref('')
 const ttsEnabled = ref(true)
+const ttsAudioRef = ref<HTMLAudioElement | null>(null)
 
 // ---- 视频仪态分析 ----
 const demeanor = useDemeanor()
@@ -400,54 +386,25 @@ watch(
 // TTS
 // ============================================================
 
-function loadVoices() {
-  if (!window.speechSynthesis) return
-  const voices = window.speechSynthesis.getVoices()
-  if (!voices.length) return
-  const isEnglish = session.interviewType === 'ENGLISH'
-  const targetLang = isEnglish ? 'en-US' : 'zh-CN'
-  availableVoices.value = voices.filter(
-    (v) => v.lang === targetLang || v.lang.startsWith(targetLang),
-  )
-  if (!availableVoices.value.length) {
-    selectedVoiceName.value = ''
-    return
+async function speakText(text: string): Promise<void> {
+  if (!ttsEnabled.value) return
+  try {
+    const blob = await api.synthesizeSpeech(session.id, text)
+    if (!ttsAudioRef.value) {
+      ttsAudioRef.value = new Audio()
+    }
+    const audio = ttsAudioRef.value
+    const url = URL.createObjectURL(blob)
+    audio.src = url
+    await audio.play()
+    await new Promise<void>((resolve) => {
+      audio.onended = () => resolve()
+      audio.onerror = () => resolve()
+    })
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    console.warn('TTS 播放失败:', e)
   }
-  const pref =
-    availableVoices.value.find((v) => /xiaoxiao/i.test(v.name)) ||
-    availableVoices.value.find((v) => /yunyang/i.test(v.name)) ||
-    availableVoices.value.find((v) => /yunxi/i.test(v.name)) ||
-    availableVoices.value.find((v) => /natural/i.test(v.name)) ||
-    availableVoices.value.find((v) => v.localService) ||
-    availableVoices.value[0]
-  selectedVoiceName.value = pref?.name || ''
-}
-
-if (typeof window !== 'undefined' && window.speechSynthesis) {
-  loadVoices()
-  window.speechSynthesis.onvoiceschanged = loadVoices
-}
-
-function speakText(text: string): Promise<void> {
-  return new Promise((resolve) => {
-    if (!ttsEnabled.value || !window.speechSynthesis) {
-      resolve()
-      return
-    }
-    const isEnglish = session.interviewType === 'ENGLISH'
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = isEnglish ? 'en-US' : 'zh-CN'
-    u.rate = 1.0
-    u.pitch = 1.0
-    if (selectedVoiceName.value) {
-      const v = availableVoices.value.find((x) => x.name === selectedVoiceName.value)
-      if (v && v.lang === u.lang) u.voice = v
-    }
-    u.onend = () => resolve()
-    u.onerror = () => resolve()
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(u)
-  })
 }
 
 // ============================================================

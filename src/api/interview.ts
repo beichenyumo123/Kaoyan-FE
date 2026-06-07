@@ -52,3 +52,18 @@ export function finishInterview(
     body: JSON.stringify({ demeanorSummary }),
   })
 }
+
+/** TTS 语音合成，返回 audio/mpeg 二进制 */
+export async function synthesizeSpeech(sessionId: number | null, text: string): Promise<Blob> {
+  const token = localStorage.getItem('token')
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) headers['Authorization'] = `Bearer ${token}`
+
+  const resp = await fetch(`${BASE}/tts`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ sessionId, text }),
+  })
+  if (!resp.ok) throw new Error('TTS synthesis failed')
+  return resp.blob()
+}
