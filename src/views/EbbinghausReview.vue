@@ -358,6 +358,9 @@ import {
   getEbbinghausStats, completeReview,
 } from '@/api/mistake'
 import type { ReviewTaskDto, CalendarDayDto } from '@/types/mistake'
+import { useMembership } from '@/composables/useMembership'
+
+const { isPremium } = useMembership()
 
 const router = useRouter()
 

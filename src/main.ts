@@ -8,6 +8,19 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 
+// ── 注册全局 402 会员付费墙回调 ──
+import { setPaywallHandler } from '@/api/index'
+setPaywallHandler((_code, data) => {
+  window.dispatchEvent(
+    new CustomEvent('membership-upgrade-prompt', {
+      detail: {
+        featureKey: (data as any)?.featureKey,
+        code: 402,
+      },
+    }),
+  )
+})
+
 const app = createApp(App)
 
 // 注册 Element Plus

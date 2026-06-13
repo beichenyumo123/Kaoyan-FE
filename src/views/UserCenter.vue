@@ -42,7 +42,10 @@
               </button>
             </div>
 
-            <h2 class="text-xl font-bold text-zinc-900">{{ user.username }}</h2>
+            <h2 class="text-xl font-bold text-zinc-900 flex items-center justify-center gap-2">
+              {{ user.username }}
+              <MembershipBadge :plan="auth.currentPlan" size="md" />
+            </h2>
             <div class="flex items-center justify-center gap-2 mt-2">
               <span class="text-xs font-medium bg-zinc-100 text-zinc-600 px-2.5 py-1 rounded-md">
                 {{ user.role === 'USER' ? '普通用户' : '管理员' }}
@@ -542,7 +545,10 @@ import {
 } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import { stripHtml } from '@/utils/markdown'
+import { useAuthStore } from '@/stores/auth'
+import MembershipBadge from '@/components/MembershipBadge.vue'
 
+const auth = useAuthStore()
 const router = useRouter()
 
 // --- 基础状态数据 ---

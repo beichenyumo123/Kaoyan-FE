@@ -571,9 +571,9 @@
 
           <!-- 主输入框与功能键行 -->
           <div class="flex items-end gap-2.5">
-            <!-- 语音输入 -->
+            <!-- 语音输入（VIP专享） -->
             <button
-              v-if="isVoiceSupported"
+              v-if="isVoiceSupported && isPremium"
               @click="toggleVoiceInput"
               :disabled="loading || !!pendingImage"
               class="flex-shrink-0 w-11 h-11 rounded-xl border flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
@@ -586,13 +586,30 @@
             >
               <Mic class="w-4 h-4" />
             </button>
-
-            <!-- 传图解题 -->
             <button
+              v-else-if="isVoiceSupported"
+              @click="showUpgradePrompt('语音输入')"
+              class="flex-shrink-0 w-11 h-11 rounded-xl border border-amber-200 bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 transition-all"
+              title="语音录入（VIP专享）"
+            >
+              <Mic class="w-4 h-4" />
+            </button>
+
+            <!-- 传图解题（VIP专享） -->
+            <button
+              v-if="isPremium"
               @click="triggerImageUpload"
               :disabled="loading || !!pendingImage"
               class="flex-shrink-0 w-11 h-11 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-slate-100 hover:text-slate-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed active:scale-95"
               title="上传题目截图分析"
+            >
+              <ImageIcon class="w-4 h-4" />
+            </button>
+            <button
+              v-else
+              @click="showUpgradePrompt('图片上传')"
+              class="flex-shrink-0 w-11 h-11 rounded-xl border border-amber-200 bg-amber-50 text-amber-500 flex items-center justify-center hover:bg-amber-100 transition-all"
+              title="上传题目截图分析（VIP专享）"
             >
               <ImageIcon class="w-4 h-4" />
             </button>
@@ -644,10 +661,16 @@
             </button>
           </div>
 
-          <!-- 底板快捷键说明 -->
-          <div class="hidden sm:flex items-center justify-between text-[10px] text-slate-400 px-1">
-            <p>💡 回答结果支持 LaTeX 与 Markdown 精美语法排版</p>
-            <p>
+          <!-- 配额指示器 + 底板快捷键说明 -->
+          <div class="flex items-center justify-between text-[10px] px-1">
+            <QuotaIndicator
+              :used="aiUsed"
+              :limit="aiLimit"
+              :loaded="isLoaded"
+              feature-key="ai_ask"
+              @upgrade="showUpgradePrompt()"
+            />
+            <p class="text-slate-400">
               使用
               <kbd class="px-1 py-0.5 bg-slate-100 border rounded font-mono">Enter</kbd> 快捷发送 ·
               <kbd class="px-1 py-0.5 bg-slate-100 border rounded font-mono">Shift+Enter</kbd> 换行
@@ -808,10 +831,13 @@ import {
   Hash,
 } from 'lucide-vue-next'
 import { request } from '@/api'
+import { checkFeature } from '@/api/membership'
 import { checkSaved } from '@/api/mistake'
 import { renderMarkdown } from '@/utils/markdown'
 import { useRouter, useRoute } from 'vue-router'
+import { useMembership } from '@/composables/useMembership'
 import AiSaveDrawer from '@/components/AiSaveDrawer.vue'
+import QuotaIndicator from '@/components/QuotaIndicator.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -869,6 +895,10 @@ let abortController = null
 let scrollCheckTimeout = null
 let recognition = null
 let deckResizeObserver = null
+
+// ── 会员功能 ──
+const { isPremium, used: aiUsed, limit: aiLimit, isLoaded, showUpgradePrompt } =
+  useMembership('ai_ask')
 
 const getToken = () => localStorage.getItem('token') || ''
 
@@ -1303,6 +1333,17 @@ const handleStop = () => {
 const sendMessage = async (text) => {
   const imageUrl = pendingImage.value?.imageUrl || null
 
+  // ── 会员预检：配额不足时直接弹升级窗，避免无意义 SSE 建连 ──
+  try {
+    const checkRes = await checkFeature('ai_ask')
+    if (checkRes.code === 200 && checkRes.data && !checkRes.data.available) {
+      showUpgradePrompt()
+      return
+    }
+  } catch {
+    // 预检失败不阻塞，由后端最终拦截
+  }
+
   const userMsg = { role: 'user', content: text }
   if (imageUrl) userMsg.imageUrl = imageUrl
   messages.value.push(userMsg)
@@ -1374,6 +1415,35 @@ const sendMessage = async (text) => {
         if (!payload) continue
         try {
           const parsed = JSON.parse(payload)
+
+          // ── SSE 402/401 错误处理 ──
+          if (parsed.type === 'error') {
+            if (parsed.code === 402) {
+              abortController.abort()
+              messages.value = messages.value.slice(0, aiMsgIndex)
+              window.dispatchEvent(
+                new CustomEvent('membership-upgrade-prompt', {
+                  detail: {
+                    featureKey: parsed.featureKey || 'ai_ask',
+                    message: parsed.message,
+                  },
+                }),
+              )
+              break
+            }
+            if (parsed.code === 401) {
+              abortController.abort()
+              messages.value = messages.value.slice(0, aiMsgIndex)
+              window.dispatchEvent(
+                new CustomEvent('app-toast', {
+                  detail: { type: 'warning', message: '登录已过期，请重新登录' },
+                }),
+              )
+              break
+            }
+            continue
+          }
+
           if (parsed.type === 'meta') {
             currentSessionId.value = parsed.sessionId
             const existing = sessions.value.find((s) => s.id === parsed.sessionId)

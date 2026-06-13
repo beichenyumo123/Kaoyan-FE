@@ -101,6 +101,14 @@ const router = createRouter({
       name: 'SchoolSelect',
       component: SchoolSelect,
     },
+    // ═══════════════════════════════════════════
+    //  付费页面
+    // ═══════════════════════════════════════════
+    {
+      path: '/pricing',
+      name: 'Pricing',
+      component: () => import('@/views/PricingPage.vue'),
+    },
     // ==================== D 模块：上岸认证 + 经验贴 ====================
     {
       path: '/verification',
@@ -160,13 +168,60 @@ const router = createRouter({
   ],
 })
 
-// 路由守卫：需要登录的页面未登录则跳转到登录页
-router.beforeEach((to, _from, next) => {
+// 声明路由 meta 扩展
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** 需要登录 */
+    requiresAuth?: boolean
+    /** 需要付费会员 */
+    requiresMembership?: boolean
+    /** 关联的功能标识（用于升级提示上下文） */
+    featureKey?: string
+  }
+}
+
+// 路由守卫
+router.beforeEach(async (to, _from) => {
   const token = localStorage.getItem('token')
+
+  // 1. 登录检查
   if (to.meta.requiresAuth && !token) {
-    next({ path: '/', query: { redirect: to.fullPath } })
-  } else {
-    next()
+    return { path: '/', query: { redirect: to.fullPath } }
+  }
+
+  // 2. 已登录时懒加载用户信息与会员状态（避免跳过 auth 页）
+  if (token && to.name !== 'auth') {
+    try {
+      const { useAuthStore } = await import('@/stores/auth')
+      const auth = useAuthStore()
+
+      if (!auth.membership) {
+        await auth.fetchProfile()
+      }
+    } catch {
+      // 检查失败不阻塞，由后端最终拦截
+    }
+  }
+
+  // 3. 会员检查（仅在已登录且路由要求时生效）
+  if (to.meta.requiresMembership && token) {
+    try {
+      const { useAuthStore } = await import('@/stores/auth')
+      const auth = useAuthStore()
+
+      // 非会员 → 跳转到定价页
+      if (!auth.isPremium) {
+        return {
+          path: '/pricing',
+          query: {
+            redirect: to.fullPath,
+            feature: (to.meta.featureKey as string) ?? '',
+          },
+        }
+      }
+    } catch {
+      // 检查失败不阻塞
+    }
   }
 })
 

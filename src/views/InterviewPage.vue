@@ -22,8 +22,14 @@
         <el-form-item label="对话模式">
           <el-radio-group v-model="form.interactionMode">
             <el-radio value="text">文字输入</el-radio>
-            <el-radio value="realtime">实时语音对话</el-radio>
-            <el-radio value="video">视频模式（进阶）</el-radio>
+            <el-radio value="realtime" :disabled="!isPremium">
+              实时语音对话
+              <span v-if="!isPremium" class="vip-lock">🔒 VIP</span>
+            </el-radio>
+            <el-radio value="video" :disabled="!isPremium">
+              视频模式（进阶）
+              <span v-if="!isPremium" class="vip-lock">🔒 VIP</span>
+            </el-radio>
           </el-radio-group>
           <div class="mode-hint" v-if="form.interactionMode === 'realtime'">
             像打电话一样自由对话，说完停顿1.8秒自动提交，AI播报完毕后自动继续聆听
@@ -32,10 +38,29 @@
             开启摄像头，实时分析眼神交流、坐姿、表情等仪态。语音对话方式与"实时语音对话"一致。
           </div>
         </el-form-item>
+        <!-- 面试配额 -->
+        <div class="mb-4">
+          <QuotaIndicator
+            :used="interviewUsed"
+            :limit="interviewLimit"
+            :loaded="interviewLoaded"
+            feature-key="interview"
+            @upgrade="showUpgradePrompt('AI模拟面试')"
+          />
+        </div>
         <el-form-item>
-          <el-button type="primary" size="large" :loading="creating" @click="handleCreate">
-            开始面试
-          </el-button>
+          <FeatureGate feature-key="interview">
+            <template #allowed>
+              <el-button type="primary" size="large" :loading="creating" @click="handleCreate">
+                开始面试
+              </el-button>
+            </template>
+            <template #denied>
+              <el-button native-type="button" type="warning" size="large" @click="showUpgradePrompt('AI模拟面试')">
+                👑 升级VIP — 本月次数已用完
+              </el-button>
+            </template>
+          </FeatureGate>
         </el-form-item>
       </el-form>
     </el-card>
@@ -87,12 +112,16 @@
           </template>
           <span :class="['conn-state', connState]">{{ connStateLabel }}</span>
           <el-switch
+            v-if="isPremium"
             v-model="ttsEnabled"
             active-text="播报"
             inactive-text="静音"
             size="small"
             style="margin-left: 8px"
           />
+          <span v-else class="tts-lock" @click="showUpgradePrompt('TTS语音播报')">
+            🔇 语音播报 <span class="vip-tag">VIP</span>
+          </span>
         </div>
       </div>
 
@@ -239,6 +268,17 @@ import { ref, reactive, computed, nextTick, watch, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as api from '@/api/interview'
 import { useDemeanor } from '@/composables/useDemeanor'
+import { useMembership } from '@/composables/useMembership'
+import FeatureGate from '@/components/FeatureGate.vue'
+import QuotaIndicator from '@/components/QuotaIndicator.vue'
+
+const {
+  isPremium,
+  used: interviewUsed,
+  limit: interviewLimit,
+  isLoaded: interviewLoaded,
+  showUpgradePrompt,
+} = useMembership('interview')
 
 // ============================================================
 // 类型定义
@@ -678,6 +718,28 @@ async function scrollDown() {
 </script>
 
 <style scoped>
+.vip-lock {
+  font-size: 10px;
+  margin-left: 4px;
+  color: #d97706;
+}
+.tts-lock {
+  margin-left: 8px;
+  font-size: 11px;
+  color: #6b7280;
+  cursor: pointer;
+}
+.tts-lock .vip-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-left: 2px;
+}
+
 .app-container {
   max-width: 760px;
   margin: 0 auto;

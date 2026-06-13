@@ -3,6 +3,16 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getRecommend, getRecommendHistory } from '@/api/school-select'
 import type { RecommendRequest, RecommendResult } from '@/api/school-select'
+import { useMembership } from '@/composables/useMembership'
+import FeatureGate from '@/components/FeatureGate.vue'
+import QuotaIndicator from '@/components/QuotaIndicator.vue'
+
+const {
+  used: schoolUsed,
+  limit: schoolLimit,
+  isLoaded: schoolLoaded,
+  showUpgradePrompt,
+} = useMembership('school_recommend')
 import SchoolCardList from '@/components/SchoolCardList.vue'
 
 defineOptions({ name: 'SchoolSelect' })
@@ -233,6 +243,7 @@ onMounted(() => {
               :rules="rules"
               label-position="top"
               size="large"
+              @submit.prevent
             >
               <el-form-item label="本科院校" prop="undergradSchool">
                 <el-input
@@ -305,16 +316,41 @@ onMounted(() => {
                 </el-radio-group>
               </el-form-item>
 
-              <el-button
-                type="primary"
-                size="large"
-                class="w-full mt-4"
-                :loading="loading"
-                @click="handleSubmit"
-                :disabled="!isLoggedIn"
-              >
-                {{ loading ? '正在智能分析中...' : '🚀 开始智能推荐' }}
-              </el-button>
+              <!-- 配额指示器 -->
+              <div class="mb-3">
+                <QuotaIndicator
+                  :used="schoolUsed"
+                  :limit="schoolLimit"
+                  :loaded="schoolLoaded"
+                  feature-key="school_recommend"
+                  @upgrade="showUpgradePrompt('智能择校')"
+                />
+              </div>
+              <FeatureGate feature-key="school_recommend">
+                <template #allowed>
+                  <el-button
+                    type="primary"
+                    size="large"
+                    class="w-full mt-4"
+                    :loading="loading"
+                    @click="handleSubmit"
+                    :disabled="!isLoggedIn"
+                  >
+                    {{ loading ? '正在智能分析中...' : '🚀 开始智能推荐' }}
+                  </el-button>
+                </template>
+                <template #denied>
+                  <el-button
+                    native-type="button"
+                    type="warning"
+                    size="large"
+                    class="w-full mt-4"
+                    @click="showUpgradePrompt('智能择校')"
+                  >
+                    👑 升级VIP — 今日推荐次数已用完
+                  </el-button>
+                </template>
+              </FeatureGate>
 
               <!-- 未登录提示 -->
               <div

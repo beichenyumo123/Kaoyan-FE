@@ -1,10 +1,12 @@
 <script setup>
 import { RouterView } from 'vue-router'
 import AppToast from '@/components/AppToast.vue'
+import UpgradePromptModal from '@/components/UpgradePromptModal.vue'
 </script>
 
 <template>
   <AppToast />
+  <UpgradePromptModal />
   <router-view v-slot="{ Component, route }">
     <transition name="page" mode="out-in">
       <component :is="Component" :key="route.path" />

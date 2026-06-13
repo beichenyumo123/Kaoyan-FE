@@ -2,6 +2,7 @@
  * 全局 fetch 封装
  * - 自动注入 Bearer token
  * - 拦截 429 限流响应，触发全局 toast 通知
+ * - 拦截 402 会员/配额不足，触发升级弹窗
  * - 非 2xx 响应抛出错误
  * - 401 自动跳转登录
  * - 统一 JSON 解析
@@ -11,6 +12,13 @@ let _onUnauthorized: (() => void) | null = null
 
 export function setUnauthorizedHandler(fn: () => void) {
   _onUnauthorized = fn
+}
+
+let _onPaywall: ((code: number, data: any) => void) | null = null
+
+/** 注册 402 会员/配额拒绝的全局回调 */
+export function setPaywallHandler(fn: (code: number, data: any) => void) {
+  _onPaywall = fn
 }
 
 function getToken(): string {
@@ -110,6 +118,17 @@ export async function request<T = any>(
   }
 
   const json: ApiResult<T> = await res.json()
+
+  // 402 → 会员不足或配额用尽（HTTP 200 + code: 402）
+  if (json.code === 402) {
+    if (_onPaywall) {
+      _onPaywall(402, json.data)
+    } else {
+      triggerToast('warning', json.message || '该功能需要VIP会员')
+    }
+    throw new ApiError(402, json.message || '需要升级会员')
+  }
+
   return json
 }
 

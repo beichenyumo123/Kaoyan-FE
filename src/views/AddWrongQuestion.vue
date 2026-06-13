@@ -147,15 +147,33 @@
             </button>
           </div>
 
+          <!-- OCR 配额指示器 -->
+          <div v-if="uploadedImage" class="mt-4 mb-2">
+            <QuotaIndicator
+              :used="ocrUsed"
+              :limit="ocrLimit"
+              :loaded="ocrLoaded"
+              feature-key="ocr"
+              @upgrade="showUpgradePrompt('OCR识别')"
+            />
+          </div>
           <!-- Next Button -->
           <div class="mt-6 flex justify-end">
             <button
+              v-if="canUseOcr || !uploadedImage"
               @click="goToOCR"
-              :disabled="!uploadedImage && !manualText"
+              :disabled="(!uploadedImage && !manualText)"
               class="px-8 py-2.5 bg-zinc-900 text-white rounded-xl font-medium hover:bg-zinc-800 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {{ uploadedImage ? '开始 OCR 识别' : '下一步' }}
               <ArrowRight :size="16" />
+            </button>
+            <button
+              v-else
+              @click="showUpgradePrompt('OCR识别')"
+              class="px-8 py-2.5 bg-amber-500 text-white rounded-xl font-medium hover:bg-amber-600 transition-all active:scale-95 flex items-center gap-2"
+            >
+              👑 升级VIP以继续 OCR 识别
             </button>
           </div>
         </div>
@@ -401,6 +419,16 @@ import {
 import { AlertCircle, AlertTriangle, Trophy } from 'lucide-vue-next'
 import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
 import { masteryLevelToScore } from '@/utils/adapters'
+import { useMembership } from '@/composables/useMembership'
+import QuotaIndicator from '@/components/QuotaIndicator.vue'
+
+const {
+  canAccess: canUseOcr,
+  used: ocrUsed,
+  limit: ocrLimit,
+  isLoaded: ocrLoaded,
+  showUpgradePrompt,
+} = useMembership('ocr')
 import {
   uploadImage, ocrRecognize, createNote, searchKnowledgePoints,
 } from '@/api/mistake'

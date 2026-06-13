@@ -59,6 +59,18 @@ request.interceptors.response.use(
       triggerToast('warning', '请先登录后再使用择校功能')
     }
 
+    // 402 → 会员不足或配额用尽
+    if (data.code === 402) {
+      window.dispatchEvent(
+        new CustomEvent('membership-upgrade-prompt', {
+          detail: {
+            featureKey: (data.data as any)?.featureKey,
+            message: data.message,
+          },
+        }),
+      )
+    }
+
     return response
   },
   (error) => {

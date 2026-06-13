@@ -293,11 +293,21 @@
           客户端PDF
         </button>
         <button
+          v-if="isPremium"
           @click="exportServerSidePdf"
-          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 flex items-center gap-2"
+          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-amber-300 bg-amber-50 hover:bg-amber-100 transition-all active:scale-95 flex items-center gap-2"
         >
           <FileDown :size="16" />
           高质量PDF
+          <span class="text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded ml-1 font-bold">VIP</span>
+        </button>
+        <button
+          v-else
+          @click="showUpgradePrompt('高清PDF导出')"
+          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 flex items-center gap-2"
+        >
+          <FileDown :size="16" />
+          高质量PDF 🔒
         </button>
       </div>
     </div>
@@ -510,6 +520,9 @@ import KnowledgePointSelector from '@/components/KnowledgePointSelector.vue'
 import { formatDaysSince, getReviewStage } from '@/utils/ebbinghaus'
 import { exportQuestionsToPdf } from '@/utils/pdf-export'
 import { toMistakeNoteVO, masteryLevelToScore } from '@/utils/adapters'
+import { useMembership } from '@/composables/useMembership'
+
+const { isPremium, showUpgradePrompt } = useMembership()
 import { renderMarkdown } from '@/utils/markdown'
 import {
   getNoteById, updateNote, deleteNote, completeReview, exportServerPdf,

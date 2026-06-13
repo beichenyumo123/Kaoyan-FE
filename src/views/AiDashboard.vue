@@ -314,6 +314,9 @@ import {
 } from 'lucide-vue-next'
 import { request } from '@/api'
 import WeeklyReportModal from '@/components/WeeklyReportModal.vue'
+import { useMembership } from '@/composables/useMembership'
+
+const { isPremium } = useMembership()
 
 const router = useRouter()
 

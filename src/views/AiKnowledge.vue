@@ -39,14 +39,36 @@
           <option value="">全部学科</option>
           <option v-for="s in subjects" :key="s" :value="s">{{ s }}</option>
         </select>
-        <button
-          @click="handleSearch"
-          :disabled="loading"
-          class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-        >
-          <Search class="w-4 h-4" />
-          搜索
-        </button>
+        <FeatureGate feature-key="ai_knowledge">
+          <template #allowed>
+            <button
+              @click="handleSearch"
+              :disabled="loading"
+              class="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+            >
+              <Search class="w-4 h-4" />
+              搜索
+            </button>
+          </template>
+          <template #denied>
+            <button
+              @click="$router.push('/pricing?feature=ai_knowledge')"
+              class="px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 transition-colors flex items-center gap-1.5"
+            >
+              👑 升级VIP
+            </button>
+          </template>
+        </FeatureGate>
+      </div>
+      <!-- 配额指示器 -->
+      <div class="mb-4">
+        <QuotaIndicator
+          :used="aiKnowledgeUsed"
+          :limit="aiKnowledgeLimit"
+          :loaded="aiKnowledgeLoaded"
+          feature-key="ai_knowledge"
+          @upgrade="showUpgradePrompt('AI知识库')"
+        />
       </div>
 
       <!-- Loading -->
@@ -131,6 +153,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, BookOpen, Search } from 'lucide-vue-next'
+import { useMembership } from '@/composables/useMembership'
+import FeatureGate from '@/components/FeatureGate.vue'
+import QuotaIndicator from '@/components/QuotaIndicator.vue'
+
+const {
+  used: aiKnowledgeUsed,
+  limit: aiKnowledgeLimit,
+  isLoaded: aiKnowledgeLoaded,
+  showUpgradePrompt,
+} = useMembership('ai_knowledge')
 import { request } from '@/api'
 import { renderMarkdown } from '@/utils/markdown'
 
