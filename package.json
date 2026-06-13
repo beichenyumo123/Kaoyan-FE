@@ -16,6 +16,7 @@
     "@mediapipe/face_mesh": "^0.4.1633559619",
     "axios": "^1.17.0",
     "element-plus": "^2.14.1",
+    "highlight.js": "^11.11.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
     "katex": "^0.17.0",
