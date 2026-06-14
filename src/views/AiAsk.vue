@@ -7,15 +7,15 @@
     >
       <!-- 悬浮岛屿容器，赋予其极致的圆角、阴影和呼吸边距 -->
       <div
-        class="h-[calc(100vh-1.5rem)] my-3 ml-3 w-72 bg-gradient-to-b from-[#111319] to-[#0e1015] text-slate-100 flex flex-col rounded-2xl border border-slate-800/50 shadow-2xl overflow-hidden relative"
+        class="h-[calc(100vh-1.5rem)] my-3 ml-3 w-72 bg-white text-slate-700 flex flex-col rounded-2xl border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden relative"
       >
         <!-- 背景微光氛围装饰 -->
         <div
-          class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.05),transparent_45%)] pointer-events-none"
+          class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.03),transparent_45%)] pointer-events-none"
         ></div>
 
         <!-- 新建学术会话 -->
-        <div class="p-4 border-b border-slate-800/60 relative z-10">
+        <div class="p-4 border-b border-slate-200 relative z-10">
           <button
             @click="handleNewSession"
             class="w-full flex items-center justify-center gap-2.5 px-4 py-3 text-sm font-semibold rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-600/20 active:scale-[0.98] transition-all duration-200 group"
@@ -29,12 +29,12 @@
         <div class="px-4 pt-3 pb-2 relative z-10">
           <div class="relative group">
             <Search
-              class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors"
+              class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-indigo-500 transition-colors"
             />
             <input
               v-model="sessionSearch"
               placeholder="搜索学术对话记录..."
-              class="w-full bg-slate-900/60 border border-slate-800/80 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-300 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/10 transition-all duration-200"
+              class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all duration-200"
             />
           </div>
         </div>
@@ -45,11 +45,11 @@
             <div
               class="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"
             ></div>
-            <span class="text-[10px] text-slate-500 font-medium">获取历史数据中...</span>
+            <span class="text-[10px] text-slate-400 font-medium">获取历史数据中...</span>
           </div>
           <div
             v-else-if="filteredSessions.length === 0"
-            class="text-center py-12 text-slate-550 text-xs"
+            class="text-center py-12 text-slate-400 text-xs"
           >
             {{ sessionSearch ? '未检索到匹配对话' : '暂无历史答疑记录' }}
           </div>
@@ -61,8 +61,8 @@
             class="w-full text-left px-3.5 py-3 rounded-xl text-sm transition-all duration-200 group relative cursor-pointer flex flex-col gap-1 border border-transparent"
             :class="
               currentSessionId === s.id
-                ? 'bg-slate-800/60 text-white border-slate-700/50 shadow-md shadow-black/10 before:absolute before:left-0 before:top-3 before:bottom-3 before:w-1 before:bg-indigo-500 before:rounded-r-full'
-                : 'text-slate-400 hover:bg-slate-900/50 hover:text-slate-200'
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200/60 shadow-sm shadow-indigo-100/50 before:absolute before:left-0 before:top-3 before:bottom-3 before:w-1 before:bg-indigo-500 before:rounded-r-full'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
             "
           >
             <div class="flex items-center justify-between gap-2 pr-4">
@@ -80,7 +80,7 @@
             <!-- 悬浮删除会话按钮 -->
             <button
               @click.stop="handleDeleteSession(s.id)"
-              class="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-all duration-200 text-slate-455"
+              class="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 transition-all duration-200 text-slate-400"
               title="删除会话"
             >
               <Trash2 class="w-3.5 h-3.5" />
@@ -89,9 +89,9 @@
         </div>
 
         <!-- 底部安全提示与功能 -->
-        <div class="p-4 border-t border-slate-800/80 bg-slate-950/40 relative z-10 space-y-3">
+        <div class="p-4 border-t border-slate-200 bg-slate-50 relative z-10 space-y-3">
           <div
-            class="flex items-center justify-center gap-1 text-[10px] text-slate-500 bg-slate-900/50 py-1.5 px-2 rounded-lg border border-slate-800/30"
+            class="flex items-center justify-center gap-1 text-[10px] text-slate-400 bg-slate-100 py-1.5 px-2 rounded-lg border border-slate-200"
           >
             <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
             <span>会话将于24小时后自动过期</span>
@@ -99,7 +99,7 @@
           <button
             v-if="currentSessionId && messages.length > 0"
             @click="exportConversation"
-            class="w-full text-xs font-medium py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-850 hover:border-slate-700 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
+            class="w-full text-xs font-medium py-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm"
           >
             <Download class="w-3.5 h-3.5" />
             导出当前会话 Markdown
@@ -110,67 +110,57 @@
 
     <!-- ========== 右侧主工作台 ========== -->
     <div class="flex-1 flex flex-col min-w-0 relative">
-      <!-- 极简亮色透光导航栏 -->
+      <!-- 极简导航栏 -->
       <header
-        class="sticky top-0 z-40 bg-white/70 backdrop-blur-md border-b border-slate-200/60 h-16 flex-shrink-0"
+        class="sticky top-0 z-30 bg-white border-b border-zinc-100 h-11 flex-shrink-0"
       >
-        <div class="max-w-4xl mx-auto px-6 h-full flex items-center justify-between">
-          <div class="flex items-center gap-3.5 min-w-0">
+        <div class="px-4 h-full flex items-center justify-between">
+          <div class="flex items-center gap-2 min-w-0">
             <!-- 侧边栏折叠 -->
             <button
               @click="sidebarOpen = !sidebarOpen"
-              class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-900 active:scale-95 transition-all"
+              class="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 active:scale-95 transition-all"
               :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
             >
-              <PanelLeftClose v-if="sidebarOpen" class="w-5 h-5" />
-              <PanelLeftOpen v-else class="w-5 h-5" />
+              <PanelLeftClose v-if="sidebarOpen" class="w-4 h-4" />
+              <PanelLeftOpen v-else class="w-4 h-4" />
             </button>
-            <div class="w-px h-5 bg-slate-200"></div>
 
-            <h1 class="text-base font-bold tracking-tight flex items-center gap-2.5 flex-shrink-0">
-              <div
-                class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/10"
-              >
-                <Sparkles class="w-4 h-4 text-white" />
-              </div>
-              <span
-                class="bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent font-extrabold"
-                >考研 AI 导师</span
-              >
-            </h1>
-
-            <template v-if="currentSessionTitle">
-              <span class="w-px h-4 bg-slate-200 flex-shrink-0"></span>
-              <span
-                class="text-xs font-semibold text-slate-400 truncate max-w-[220px] hidden sm:block bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200/40"
-              >
-                {{ currentSessionTitle }}
-              </span>
-            </template>
+            <!-- 当前会话名 -->
+            <span
+              v-if="currentSessionTitle"
+              class="text-[11px] font-semibold text-zinc-500 truncate max-w-[220px] hidden sm:block bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200/40"
+            >
+              {{ currentSessionTitle }}
+            </span>
+            <span
+              v-else
+              class="text-[11px] font-semibold text-zinc-400 hidden sm:block"
+            >新对话</span>
           </div>
 
           <button
             @click="exportConversation"
             v-if="currentSessionId && messages.length > 0"
-            class="hidden sm:flex items-center gap-2 text-xs font-bold px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 shadow-sm transition-all active:scale-95"
+            class="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-all active:scale-95"
             title="导出对话"
           >
-            <Download class="w-3.5 h-3.5" />
-            <span>导出学术记录</span>
+            <Download class="w-3 h-3" />
+            <span class="hidden sm:inline">导出</span>
           </button>
         </div>
       </header>
 
       <!-- 问答容器 -->
       <main
-        class="flex-1 max-w-4xl w-full mx-auto px-6 py-6 flex flex-col overflow-hidden relative"
+        class="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col min-h-0 overflow-hidden"
       >
-        <!-- 消息主体容器：pb 已被改为动态 paddingBottom，防止底部输入卡片遮挡消息 -->
+        <!-- 消息主体容器 -->
         <div
           ref="chatContainer"
-          class="flex-1 overflow-y-auto space-y-6 custom-main-scroll"
-          :style="{ paddingBottom: deckHeight + 24 + 'px' }"
+          class="flex-1 overflow-y-auto min-h-0 space-y-4 custom-main-scroll"
           @scroll="checkScrollPosition"
+          @wheel="onChatWheel"
         >
           <!-- 历史加载骨架 -->
           <div
@@ -192,25 +182,25 @@
             class="flex flex-col items-center justify-center py-12 text-center px-4 max-w-2xl mx-auto"
           >
             <!-- 奢华科技发光圈 -->
-            <div class="relative mb-6 group">
+            <div class="relative mb-4 group">
               <div
                 class="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-20 blur-xl group-hover:opacity-30 transition duration-1000 animate-pulse"
               ></div>
               <div
-                class="relative w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center shadow-md ring-1 ring-indigo-200/50"
+                class="relative w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center shadow-md ring-1 ring-indigo-200/50"
               >
-                <BookOpen class="w-9 h-9 text-indigo-600" />
+                <BookOpen class="w-7 h-7 text-indigo-600" />
               </div>
             </div>
 
-            <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight sm:text-3xl">
+            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight sm:text-2xl">
               探索考研知识新视界
             </h2>
-            <p class="text-sm font-medium text-slate-500 mt-2">
+            <p class="text-sm font-medium text-slate-500 mt-1.5">
               基于学术级专业 RAG 技术，深度还原考点，助您直通名校
             </p>
             <div
-              class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full my-6"
+              class="w-16 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full my-4"
             ></div>
 
             <!-- 2x2 高奢学术卡片网格 -->
@@ -222,24 +212,24 @@
                 推荐高频学术提问
               </p>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   v-for="q in quickQuestionsWithIcons"
                   :key="q.text"
                   @click="sendMessage(q.text)"
-                  class="text-left p-4 bg-white hover:bg-gradient-to-br hover:from-white hover:to-indigo-55/10 border border-slate-200 hover:border-indigo-200 rounded-2xl transition-all duration-300 flex items-start gap-3.5 shadow-sm hover:shadow-md hover:-translate-y-1 group"
+                  class="text-left p-3.5 bg-white hover:bg-gradient-to-br hover:from-white hover:to-indigo-50 border border-slate-200 hover:border-indigo-200 rounded-2xl transition-all duration-300 flex items-start gap-3 shadow-sm hover:shadow-md hover:-translate-y-1 group"
                 >
                   <div
-                    class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300"
+                    class="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center flex-shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-300"
                   >
-                    <component :is="q.icon" class="w-4 h-4" />
+                    <component :is="q.icon" class="w-3.5 h-3.5" />
                   </div>
                   <div class="min-w-0">
                     <span
-                      class="block text-sm font-bold text-slate-700 group-hover:text-slate-900 transition-colors"
+                      class="block text-[13px] font-bold text-slate-700 group-hover:text-slate-900 transition-colors"
                       >{{ q.text }}</span
                     >
-                    <span class="block text-[11px] text-slate-400 mt-1"
+                    <span class="block text-[10px] text-slate-400 mt-1"
                       >点击立即向 AI 答疑导师提问</span
                     >
                   </div>
@@ -248,7 +238,7 @@
             </div>
 
             <!-- 功能提示标签 -->
-            <div class="mt-10 flex flex-wrap items-center justify-center gap-2.5">
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-2.5">
               <span
                 class="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl border border-slate-200/40"
               >
@@ -284,7 +274,7 @@
                 </button>
 
                 <div
-                  class="bg-gradient-to-br from-indigo-600 to-violet-600 text-white px-5 py-3 rounded-2xl rounded-tr-md shadow-md shadow-indigo-650/10 space-y-2"
+                  class="bg-gradient-to-br from-indigo-600 to-violet-600 text-white px-4 py-2.5 rounded-2xl rounded-tr-md shadow-md shadow-indigo-600/10 space-y-2"
                 >
                   <div
                     v-if="msg.imageUrl"
@@ -317,16 +307,14 @@
             <div v-else class="flex justify-start group/aimsg items-start gap-3">
               <div class="max-w-[88%] space-y-2.5 min-w-0 w-full">
                 <!-- AI 角色卡头 -->
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-2.5 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                  <div class="flex items-center gap-2 min-w-0">
                     <div
-                      class="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-sm shadow-md shadow-indigo-500/10"
+                      class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-xs shadow-md shadow-indigo-500/10"
                     >
                       🤖
                     </div>
-                    <div class="flex flex-col">
-                      <span class="text-xs font-extrabold text-slate-800">学术解答导师</span>
-                    </div>
+                    <span class="text-[11px] font-bold text-slate-500">AI 导师</span>
                     <span
                       v-if="msg.subject"
                       class="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100/50"
@@ -356,14 +344,14 @@
 
                 <!-- 导师聊天核心气泡 (Premium 容器) -->
                 <div
-                  class="bg-white border border-slate-200/80 px-5 py-4 rounded-2xl rounded-tl-md shadow-sm transition-all duration-300 hover:shadow-md"
+                  class="bg-white border border-slate-200/80 px-4 py-3 rounded-2xl rounded-tl-md shadow-sm transition-all duration-300 hover:shadow-md"
                 >
                   <!-- 备用服务降级提示 -->
                   <div
                     v-if="msg.degraded"
                     class="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200/60 rounded-xl p-3 flex items-start gap-2.5"
                   >
-                    <AlertTriangle class="w-4 h-4 flex-shrink-0 text-amber-550 mt-0.5" />
+                    <AlertTriangle class="w-4 h-4 flex-shrink-0 text-amber-500 mt-0.5" />
                     <div class="space-y-0.5">
                       <p class="font-bold">本地算力降级响应</p>
                       <p class="opacity-80 text-[11px]">
@@ -411,11 +399,11 @@
                 <!-- 底部反馈控制工具栏 (Message Action Bar) -->
                 <div
                   v-if="!msg.streaming && msg.content"
-                  class="flex items-center gap-1.5 mt-2.5 flex-wrap pl-1"
+                  class="flex items-center gap-1 mt-2 flex-wrap pl-1"
                 >
                   <button
                     @click="copyText(msg.content)"
-                    class="text-[11px] font-bold px-3 py-1.5 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1.5 border border-transparent hover:border-slate-200"
+                    class="text-[11px] font-bold px-2.5 py-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1.5 border border-transparent hover:border-slate-200"
                   >
                     <Copy class="w-3.5 h-3.5" />
                     <span>复制解答</span>
@@ -423,7 +411,7 @@
 
                   <button
                     @click="regenerateMessage(idx)"
-                    class="text-[11px] font-bold px-3 py-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 border border-transparent hover:border-indigo-100"
+                    class="text-[11px] font-bold px-2.5 py-1 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition-colors flex items-center gap-1.5 border border-transparent hover:border-indigo-100"
                   >
                     <RefreshCw class="w-3.5 h-3.5" />
                     <span>重新生成</span>
@@ -433,7 +421,7 @@
 
                   <button
                     @click="sendFeedback(idx, 'positive')"
-                    class="text-[11px] px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 border"
+                    class="text-[11px] px-2 py-1 rounded-lg transition-all flex items-center gap-1 border"
                     :class="
                       msg.feedback === 'positive'
                         ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
@@ -445,7 +433,7 @@
 
                   <button
                     @click="sendFeedback(idx, 'negative')"
-                    class="text-[11px] px-2.5 py-1.5 rounded-lg transition-all flex items-center gap-1 border"
+                    class="text-[11px] px-2 py-1 rounded-lg transition-all flex items-center gap-1 border"
                     :class="
                       msg.feedback === 'negative'
                         ? 'text-red-500 bg-red-50 border-red-200'
@@ -460,7 +448,7 @@
                   <!-- 加入错题本/收藏按钮 (已修复消失问题并全面美化) -->
                   <button
                     v-if="isMsgSaved(msg, idx)"
-                    class="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-emerald-550 text-white shadow-sm border border-emerald-550 flex items-center gap-1.5 cursor-default"
+                    class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white shadow-sm border border-emerald-600 flex items-center gap-1.5 cursor-default"
                   >
                     <Check class="w-3.5 h-3.5" />
                     <span>已保存至错题集</span>
@@ -468,7 +456,7 @@
                   <button
                     v-else
                     @click="addToMistake(idx)"
-                    class="text-[11px] font-bold px-3 py-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-1.5 border border-transparent hover:border-emerald-100"
+                    class="text-[11px] font-bold px-2.5 py-1 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition-colors flex items-center gap-1.5 border border-transparent hover:border-emerald-100"
                   >
                     <BookOpen class="w-3.5 h-3.5" />
                     <span>一键入错题集</span>
@@ -479,22 +467,20 @@
           </template>
         </div>
 
-        <!-- 快速滑到底部 FAB 按钮 (动态底距绑定) -->
-        <div v-if="showScrollButton" class="relative">
+        <!-- 快速滑到底部 FAB 按钮 -->
+        <div v-if="showScrollButton" class="relative h-0 z-30">
           <button
             @click="scrollToBottomForce"
             class="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 w-10 h-10 bg-white border border-slate-200 text-slate-500 rounded-full shadow-lg flex items-center justify-center hover:bg-slate-50 hover:shadow-xl hover:translate-y-[-2px] transition-all duration-200"
-            :style="{ bottom: deckHeight + 16 + 'px' }"
             title="滑到底部"
           >
             <ChevronDown class="w-5 h-5 text-indigo-500" />
           </button>
         </div>
 
-        <!-- 悬浮拟物化控制底座 (Floating Input Deck) -->
+        <!-- 输入控制区 -->
         <div
-          ref="inputDeckRef"
-          class="absolute bottom-4 inset-x-6 z-40 bg-white/80 backdrop-blur-xl border border-slate-200 shadow-xl shadow-slate-100 rounded-2xl px-4 py-4 flex flex-col gap-3"
+          class="flex-shrink-0 mt-4 z-40 bg-white/80 backdrop-blur-xl border border-slate-200 shadow-xl shadow-slate-100 rounded-2xl px-4 py-4 flex flex-col gap-3"
         >
           <!-- 上传题目截图预览 -->
           <div v-if="pendingImage" class="relative inline-flex self-start group">
@@ -690,11 +676,11 @@
         >
           <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" />
           <div
-            class="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-[#111319] to-[#0e1015] rounded-t-2xl max-h-[75vh] flex flex-col shadow-2xl overflow-hidden border-t border-slate-800"
+            class="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[75vh] flex flex-col shadow-2xl overflow-hidden border-t border-slate-200"
           >
             <!-- 拖拽条 -->
             <div class="flex justify-center pt-3 pb-1.5 flex-shrink-0">
-              <div class="w-12 h-1 bg-slate-700 rounded-full" />
+              <div class="w-12 h-1 bg-slate-300 rounded-full" />
             </div>
 
             <!-- 新建学术会话 -->
@@ -715,7 +701,7 @@
                 <input
                   v-model="sessionSearch"
                   placeholder="搜索历史答疑..."
-                  class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none"
+                  class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500/50"
                 />
               </div>
             </div>
@@ -729,7 +715,7 @@
               </div>
               <div
                 v-else-if="filteredSessions.length === 0"
-                class="text-center py-8 text-slate-500 text-sm"
+                class="text-center py-8 text-slate-400 text-sm"
               >
                 {{ sessionSearch ? '未匹配到任何结果' : '暂无对话数据记录' }}
               </div>
@@ -741,8 +727,8 @@
                 class="w-full text-left px-3.5 py-3.5 rounded-xl text-sm transition-all duration-200 group relative flex flex-col gap-1.5 border border-transparent"
                 :class="
                   currentSessionId === s.id
-                    ? 'bg-slate-800/80 text-white border-slate-700/50'
-                    : 'text-slate-400 hover:bg-slate-900/60 hover:text-slate-200'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200/60'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
                 "
               >
                 <div class="flex items-center justify-between gap-2">
@@ -762,11 +748,11 @@
             </div>
 
             <!-- 移动端底脚 -->
-            <div class="px-4 py-4 border-t border-slate-850 bg-slate-950/40 flex-shrink-0">
+            <div class="px-4 py-4 border-t border-slate-200 bg-slate-50 flex-shrink-0">
               <button
                 v-if="currentSessionId && messages.length > 0"
                 @click="exportConversation"
-                class="w-full text-xs font-bold py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white flex items-center justify-center gap-2"
+                class="w-full text-xs font-bold py-3 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center gap-2"
               >
                 <Download class="w-4 h-4" />
                 导出当前对话 Markdown
@@ -886,15 +872,15 @@ const savedMsgIds = ref(new Set())
 const showScrollButton = ref(false)
 const sessionSearch = ref('')
 const isListening = ref(false)
+const userManuallyScrolledUp = ref(false)
 
 // 核心优化：动态监听控制舱高度的引用与变量
-const inputDeckRef = ref(null)
-const deckHeight = ref(170) // 默认兜底高度
+
+
 
 let abortController = null
 let scrollCheckTimeout = null
 let recognition = null
-let deckResizeObserver = null
 
 // ── 会员功能 ──
 const { isPremium, used: aiUsed, limit: aiLimit, isLoaded, showUpgradePrompt } =
@@ -943,17 +929,21 @@ const autoResize = () => {
 
 // 强制滚动：发问、重算等场景直接降底
 const scrollToBottomForce = async () => {
+  userManuallyScrolledUp.value = false
   await nextTick()
   if (chatContainer.value) {
-    chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+    chatContainer.value.scrollTo({
+      top: chatContainer.value.scrollHeight,
+      behavior: 'smooth',
+    })
   }
 }
 
-// 智能判断用户是否位于底部 (150px 缓冲区)
+// 智能判断用户是否位于底部 (80px 缓冲区)
 const isUserAtBottom = () => {
   const el = chatContainer.value
   if (!el) return true
-  return el.scrollHeight - el.scrollTop - el.clientHeight < 150
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 80
 }
 
 const checkScrollPosition = () => {
@@ -963,7 +953,23 @@ const checkScrollPosition = () => {
     if (!el) return
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight
     showScrollButton.value = distanceFromBottom > 200
+    if (distanceFromBottom < 40) {
+      userManuallyScrolledUp.value = false
+    }
   }, 100)
+}
+
+// 监听用户手动滚动意图：向上滚动时暂停自动滚底
+const onChatWheel = (e) => {
+  if (e.deltaY < 0) {
+    userManuallyScrolledUp.value = true
+  } else if (e.deltaY > 0) {
+    nextTick(() => {
+      if (isUserAtBottom()) {
+        userManuallyScrolledUp.value = false
+      }
+    })
+  }
 }
 
 const formatTime = (dateStr) => {
@@ -1364,6 +1370,7 @@ const sendMessage = async (text) => {
   })
 
   // 发送消息时，明确强制滑动到底部
+  userManuallyScrolledUp.value = false
   await scrollToBottomForce()
 
   loading.value = true
@@ -1371,9 +1378,8 @@ const sendMessage = async (text) => {
 
   // 辅助函数：根据用户当前的滚动条位置，智能判断是否自动滚动
   const appendAiContent = async (textChunk) => {
-    const userWasAtBottom = isUserAtBottom()
     messages.value[aiMsgIndex].content += textChunk
-    if (userWasAtBottom) {
+    if (!userManuallyScrolledUp.value && isUserAtBottom()) {
       await scrollToBottomForce()
     }
   }
@@ -1540,17 +1546,6 @@ onMounted(async () => {
     await switchSession(sessions.value[0].id)
   }
 
-  // 完美引入：ResizeObserver 动态计算输入控制舱的高度
-  if (typeof window !== 'undefined' && 'ResizeObserver' in window) {
-    deckResizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        deckHeight.value = entry.target.clientHeight
-      }
-    })
-    if (inputDeckRef.value) {
-      deckResizeObserver.observe(inputDeckRef.value)
-    }
-  }
 })
 
 onBeforeUnmount(() => {
@@ -1558,10 +1553,6 @@ onBeforeUnmount(() => {
   if (recognition) {
     recognition.stop()
     recognition = null
-  }
-  // 销毁监听器，防止内存泄漏
-  if (deckResizeObserver) {
-    deckResizeObserver.disconnect()
   }
 })
 </script>
@@ -1584,11 +1575,11 @@ onBeforeUnmount(() => {
 }
 
 .custom-sidebar-scroll::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #cbd5e1;
   border-radius: 99px;
 }
 .custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94a3b8;
 }
 
 /* 隐藏滚动条 */
