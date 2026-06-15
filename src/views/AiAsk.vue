@@ -1574,13 +1574,25 @@ onMounted(async () => {
     )
     return
   }
-  await loadSessions()
-  if (sessions.value.length > 0) {
-    await switchSession(sessions.value[0].id)
+
+  // 检查是否有外部联动跳转（知识库、错题追问）
+  const qQuestion = route.query.question
+  const ctxKey = route.query.context
+  const hasExternalCtx = !!(qQuestion || ctxKey)
+
+  if (hasExternalCtx) {
+    // 外部联动 → 加载会话列表用于侧边栏，但用新会话发送问题
+    await loadSessions()
+    await handleNewSession()
+  } else {
+    // 正常进入 → 恢复上次的会话
+    await loadSessions()
+    if (sessions.value.length > 0) {
+      await switchSession(sessions.value[0].id)
+    }
   }
 
-  // 从知识库联动跳转：读取 query 参数自动发送问题
-  const qQuestion = route.query.question
+  // 从知识库联动跳转
   if (qQuestion) {
     const qSubject = route.query.subject
     if (qSubject) selectedSubject.value = String(qSubject)
@@ -1589,7 +1601,6 @@ onMounted(async () => {
   }
 
   // 从错题详情联动跳转：读取 sessionStorage 中的完整上下文
-  const ctxKey = route.query.context
   if (ctxKey) {
     const stored = sessionStorage.getItem(`ai_ctx_${ctxKey}`)
     if (stored) {
