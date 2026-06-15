@@ -8,8 +8,16 @@ import App from './App.vue'
 import router from './router'
 import './style.css'
 
+// ── 注册全局 401 / 402 回调 ──
+import { setUnauthorizedHandler, setPaywallHandler } from '@/api/index'
+
+// 401：用 Vue Router 软导航，避免硬刷新导致白屏
+setUnauthorizedHandler(() => {
+  localStorage.removeItem('token')
+  router.push({ path: '/', query: { redirect: router.currentRoute.value.fullPath } })
+})
+
 // ── 注册全局 402 会员付费墙回调 ──
-import { setPaywallHandler } from '@/api/index'
 setPaywallHandler((_code, data) => {
   window.dispatchEvent(
     new CustomEvent('membership-upgrade-prompt', {

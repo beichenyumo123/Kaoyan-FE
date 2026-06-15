@@ -150,12 +150,15 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ArrowLeft, BookOpen, Search } from 'lucide-vue-next'
 import { useMembership } from '@/composables/useMembership'
 import FeatureGate from '@/components/FeatureGate.vue'
 import QuotaIndicator from '@/components/QuotaIndicator.vue'
+import { request } from '@/api'
+import { renderMarkdown } from '@/utils/markdown'
 
 const {
   used: aiKnowledgeUsed,
@@ -163,8 +166,8 @@ const {
   isLoaded: aiKnowledgeLoaded,
   showUpgradePrompt,
 } = useMembership('ai_knowledge')
-import { request } from '@/api'
-import { renderMarkdown } from '@/utils/markdown'
+
+const route = useRoute()
 
 const subjects = ['数据结构', '操作系统', '计算机网络', '计算机组成原理', '高等数学', '线性代数', '概率论', '英语', '政治']
 
@@ -207,6 +210,15 @@ onMounted(() => {
     window.dispatchEvent(new CustomEvent('app-toast', {
       detail: { type: 'warning', message: '请先登录以使用知识库搜索' },
     }))
+  }
+
+  // 读取路由 query 参数，支持从社区推荐卡片跳转后自动搜索
+  const qKeyword = route.query.keyword
+  const qSubject = route.query.subject
+  if (qKeyword || qSubject) {
+    keyword.value = String(qKeyword || '')
+    if (qSubject) selectedSubject.value = String(qSubject)
+    handleSearch()
   }
 })
 </script>

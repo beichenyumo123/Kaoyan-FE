@@ -189,17 +189,13 @@ router.beforeEach(async (to, _from) => {
     return { path: '/', query: { redirect: to.fullPath } }
   }
 
-  // 2. 已登录时懒加载用户信息与会员状态（避免跳过 auth 页）
+  // 2. 已登录时懒加载用户信息与会员状态（不阻塞导航，避免 API 失败导致白屏）
   if (token && to.name !== 'auth') {
-    try {
-      const { useAuthStore } = await import('@/stores/auth')
-      const auth = useAuthStore()
+    const { useAuthStore } = await import('@/stores/auth')
+    const auth = useAuthStore()
 
-      if (!auth.membership) {
-        await auth.fetchProfile()
-      }
-    } catch {
-      // 检查失败不阻塞，由后端最终拦截
+    if (!auth.membership) {
+      auth.fetchProfile() // fire-and-forget，不 await，导航不被阻塞
     }
   }
 

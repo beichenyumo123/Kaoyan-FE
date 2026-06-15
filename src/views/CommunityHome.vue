@@ -348,7 +348,7 @@
             <button
               v-for="rec in recommendations"
               :key="rec.id"
-              @click="$router.push('/ai/knowledge')"
+              @click="$router.push({ path: '/ai/knowledge', query: { keyword: rec.title, subject: rec.subject } })"
               class="flex-shrink-0 bg-zinc-50 border border-zinc-100 rounded-xl px-3 py-2 hover:bg-indigo-50 hover:border-indigo-200 transition-all text-left"
             >
               <p class="text-xs font-semibold text-zinc-800 truncate max-w-[160px]">

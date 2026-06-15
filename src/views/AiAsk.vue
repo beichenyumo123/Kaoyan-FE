@@ -1,13 +1,17 @@
 <template>
-  <div class="h-screen bg-[#f8fafc] font-sans text-slate-900 flex overflow-hidden">
+  <!-- 父级容器：桌面端引入 p-3 与动态 gap-3，使左右两侧卡片完美对齐，营造精致呼吸感 -->
+  <div
+    class="h-screen bg-[#f8fafc] font-sans text-slate-900 flex overflow-hidden lg:p-3"
+    :class="sidebarOpen ? 'lg:gap-3 transition-[gap] duration-300' : 'lg:gap-0 transition-[gap] duration-300'"
+  >
     <!-- ========== Desktop 左侧悬浮卡片式会话历史面板 ========== -->
     <aside
       class="hidden lg:flex flex-shrink-0 flex-col transition-all duration-300 z-50 relative"
       :class="sidebarOpen ? 'w-76 opacity-100' : 'w-0 opacity-0 overflow-hidden'"
     >
-      <!-- 悬浮岛屿容器，赋予其极致的圆角、阴影和呼吸边距 -->
+      <!-- 悬浮岛屿容器：高度设为 h-full，完美对齐右侧，去掉原本生硬的 my-3 ml-3，统一由父级 p-3 托管 -->
       <div
-        class="h-[calc(100vh-1.5rem)] my-3 ml-3 w-72 bg-white text-slate-700 flex flex-col rounded-2xl border border-slate-200 shadow-lg shadow-slate-200/50 overflow-hidden relative"
+        class="h-full w-72 bg-white text-slate-700 flex flex-col rounded-2xl border border-slate-200/80 shadow-lg shadow-slate-200/50 overflow-hidden relative"
       >
         <!-- 背景微光氛围装饰 -->
         <div
@@ -109,51 +113,78 @@
     </aside>
 
     <!-- ========== 右侧主工作台 ========== -->
-    <div class="flex-1 flex flex-col min-w-0 relative">
-      <!-- 极简导航栏 -->
+    <!-- 方案一优化点：添加 lg:rounded-2xl、lg:border、lg:shadow-lg、h-full，使其在大屏下完美封装为独立的右侧卡片 -->
+    <div
+      class="flex-1 flex flex-col min-w-0 relative bg-white lg:rounded-2xl lg:border lg:border-slate-200/80 lg:shadow-lg lg:shadow-slate-200/50 overflow-hidden h-full"
+    >
+      <!-- 极简导航栏：由 h-11 升级至 h-14，更换为更协调的 slate 分割线，增强呼吸感与视觉档次 -->
       <header
-        class="sticky top-0 z-30 bg-white border-b border-zinc-100 h-11 flex-shrink-0"
+        class="sticky top-0 z-30 bg-white border-b border-slate-100 h-14 flex-shrink-0 flex items-center"
       >
-        <div class="px-4 h-full flex items-center justify-between">
-          <div class="flex items-center gap-2 min-w-0">
-            <!-- 侧边栏折叠 -->
+        <div class="px-4 w-full flex items-center justify-between">
+          <div class="flex items-center gap-3 min-w-0">
+            <!-- 返回 AI 首页 -->
             <button
-              @click="sidebarOpen = !sidebarOpen"
-              class="p-1.5 rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 active:scale-95 transition-all"
-              :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
+              @click="router.push('/ai')"
+              class="p-2 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 active:scale-95 transition-all duration-200"
+              title="返回 AI 智能体首页"
             >
-              <PanelLeftClose v-if="sidebarOpen" class="w-4 h-4" />
-              <PanelLeftOpen v-else class="w-4 h-4" />
+              <Home class="w-4.5 h-4.5" />
             </button>
 
-            <!-- 当前会话名 -->
+            <!-- 侧边栏折叠：按钮重塑为大圆角卡片 hover 动效 -->
+            <button
+              @click="sidebarOpen = !sidebarOpen"
+              class="p-2 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-900 active:scale-95 transition-all duration-200"
+              :title="sidebarOpen ? '收起侧栏' : '展开侧栏'"
+            >
+              <PanelLeftClose v-if="sidebarOpen" class="w-4.5 h-4.5" />
+              <PanelLeftOpen v-else class="w-4.5 h-4.5" />
+            </button>
+
+            <!-- 当前会话名：由 text-[11px] 升级为 text-xs 粗体，底色改为更柔和的 slate-50 -->
             <span
               v-if="currentSessionTitle"
-              class="text-[11px] font-semibold text-zinc-500 truncate max-w-[220px] hidden sm:block bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200/40"
+              class="text-xs font-bold text-slate-600 truncate max-w-[240px] hidden sm:block bg-slate-50 px-3 py-1 rounded-full border border-slate-100"
             >
               {{ currentSessionTitle }}
             </span>
             <span
               v-else
-              class="text-[11px] font-semibold text-zinc-400 hidden sm:block"
-            >新对话</span>
+              class="text-xs font-bold text-slate-400 hidden sm:block bg-slate-50 px-3 py-1 rounded-full border border-slate-100"
+            >
+              新对话
+            </span>
           </div>
 
-          <button
-            @click="exportConversation"
-            v-if="currentSessionId && messages.length > 0"
-            class="flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg bg-white border border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900 transition-all active:scale-95"
-            title="导出对话"
-          >
-            <Download class="w-3 h-3" />
-            <span class="hidden sm:inline">导出</span>
-          </button>
+          <div class="flex items-center gap-2">
+            <!-- 错题集快捷入口 -->
+            <button
+              @click="router.push('/questions')"
+              class="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all active:scale-95"
+              title="查看错题集"
+            >
+              <BookOpen class="w-3.5 h-3.5" />
+              <span class="hidden sm:inline">错题集</span>
+            </button>
+
+            <!-- 导出按钮：更加饱满圆润的 rounded-xl 现代卡片风格 -->
+            <button
+              @click="exportConversation"
+              v-if="currentSessionId && messages.length > 0"
+              class="flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-95"
+              title="导出当前对话为 Markdown"
+            >
+              <Download class="w-3.5 h-3.5" />
+              <span class="hidden sm:inline">导出会话</span>
+            </button>
+          </div>
         </div>
       </header>
 
       <!-- 问答容器 -->
       <main
-        class="flex-1 max-w-4xl w-full mx-auto px-4 py-4 flex flex-col min-h-0 overflow-hidden"
+        class="flex-1 max-w-4xl w-full mx-auto px-4 py-4 lg:py-6 flex flex-col min-h-0 overflow-hidden"
       >
         <!-- 消息主体容器 -->
         <div
@@ -445,7 +476,7 @@
 
                   <span class="w-px h-3.5 bg-slate-200 mx-1"></span>
 
-                  <!-- 加入错题本/收藏按钮 (已修复消失问题并全面美化) -->
+                  <!-- 加入错题本/收藏按钮 -->
                   <button
                     v-if="isMsgSaved(msg, idx)"
                     class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-600 text-white shadow-sm border border-emerald-600 flex items-center gap-1.5 cursor-default"
@@ -815,6 +846,7 @@ import {
   GitBranch,
   Network,
   Hash,
+  Home,
 } from 'lucide-vue-next'
 import { request } from '@/api'
 import { checkFeature } from '@/api/membership'
@@ -874,17 +906,18 @@ const sessionSearch = ref('')
 const isListening = ref(false)
 const userManuallyScrolledUp = ref(false)
 
-// 核心优化：动态监听控制舱高度的引用与变量
-
-
-
 let abortController = null
 let scrollCheckTimeout = null
 let recognition = null
 
 // ── 会员功能 ──
-const { isPremium, used: aiUsed, limit: aiLimit, isLoaded, showUpgradePrompt } =
-  useMembership('ai_ask')
+const {
+  isPremium,
+  used: aiUsed,
+  limit: aiLimit,
+  isLoaded,
+  showUpgradePrompt,
+} = useMembership('ai_ask')
 
 const getToken = () => localStorage.getItem('token') || ''
 
@@ -1545,10 +1578,23 @@ onMounted(async () => {
   if (sessions.value.length > 0) {
     await switchSession(sessions.value[0].id)
   }
-
 })
 
 onBeforeUnmount(() => {
+  // 中断正在进行的 SSE 流请求，防止后台 reader 循环
+  // 持续更新已销毁组件的响应式状态，干扰 Vue 过渡动画
+  if (abortController) {
+    abortController.abort()
+    abortController = null
+  }
+  loading.value = false
+
+  // 释放图片预览 URL，防止内存泄漏
+  if (pendingImage.value?.preview) {
+    URL.revokeObjectURL(pendingImage.value.preview)
+    pendingImage.value = null
+  }
+
   if (scrollCheckTimeout) clearTimeout(scrollCheckTimeout)
   if (recognition) {
     recognition.stop()

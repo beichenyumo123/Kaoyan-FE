@@ -1,50 +1,51 @@
 <template>
   <div class="min-h-screen bg-zinc-50 font-sans text-zinc-900 selection:bg-zinc-200 flex flex-col">
     <!-- Header -->
-    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-200">
+    <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-zinc-100">
       <div class="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <button
             @click="goBack"
             class="p-2 -ml-2 rounded-xl hover:bg-zinc-100 transition-colors active:scale-95"
           >
-            <ArrowLeft :size="20" class="text-zinc-600" />
+            <ArrowLeft :size="18" class="text-zinc-600" />
           </button>
-          <FileText :size="22" class="text-zinc-800" />
-          <h1 class="text-lg font-bold text-zinc-900">错题详情</h1>
+          <FileText :size="20" class="text-zinc-800" />
+          <h1 class="text-md font-extrabold text-zinc-900">错题详情</h1>
         </div>
         <div class="flex items-center gap-1.5">
           <!-- Edit Toggle -->
           <button
             v-if="!isEditing"
             @click="startEdit"
-            class="p-2 rounded-xl hover:bg-zinc-100 transition-colors active:scale-95"
+            class="p-2 rounded-xl hover:bg-zinc-100 transition-colors active:scale-95 text-zinc-500 hover:text-zinc-800"
             title="编辑"
           >
-            <Pencil :size="18" class="text-zinc-500" />
+            <Pencil :size="18" />
           </button>
           <!-- Share -->
           <button
             @click="shareQuestion"
-            class="p-2 rounded-xl hover:bg-zinc-100 transition-colors active:scale-95"
+            class="p-2 rounded-xl hover:bg-zinc-100 transition-colors active:scale-95 text-zinc-500 hover:text-zinc-800"
             title="分享"
           >
-            <Share2 :size="18" class="text-zinc-500" />
+            <Share2 :size="18" />
           </button>
           <!-- Delete -->
           <button
             @click="showDeleteModal = true"
-            class="p-2 rounded-xl hover:bg-red-50 transition-colors active:scale-95"
+            class="p-2 rounded-xl hover:bg-red-50 transition-colors active:scale-95 text-red-400 hover:text-red-600"
             title="删除"
           >
-            <Trash2 :size="18" class="text-red-400" />
+            <Trash2 :size="18" />
           </button>
         </div>
       </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 max-w-4xl mx-auto px-4 py-6 w-full">
+    <!-- 优化点：增加了 pb-36 lg:pb-40 以保证即使滑到最底部，内容也不会被浮动 Dock 栏遮挡 -->
+    <main class="flex-1 max-w-4xl mx-auto px-4 py-6 w-full pb-36 lg:pb-40">
       <!-- Skeleton Loading -->
       <template v-if="loading">
         <div class="animate-pulse space-y-6">
@@ -67,107 +68,202 @@
             <!-- Left Column: Image + OCR Text -->
             <div class="lg:col-span-2 space-y-6">
               <!-- Image -->
-              <div v-if="question.imageUrl" class="bg-white border border-zinc-200 rounded-2xl overflow-hidden">
+              <div
+                v-if="question.imageUrl"
+                class="bg-white border border-zinc-200/80 rounded-2xl overflow-hidden shadow-sm group relative"
+              >
                 <img
                   :src="question.imageUrl"
                   alt="题目图片"
-                  class="w-full object-contain max-h-96 cursor-pointer"
+                  class="w-full object-contain max-h-96 cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.01]"
                   @click="showImageModal = true"
                 />
+                <div
+                  class="absolute bottom-3 right-3 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-lg text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  点击放大图片
+                </div>
               </div>
 
-              <!-- OCR Text Card -->
-              <div class="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">题目内容</h3>
-                <p class="text-sm text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                  {{ question.questionContent || '未识别文本内容' }}
-                </p>
+              <!-- OCR Text Card: 重塑为支持 LaTeX 排版渲染的高级卡片，集成一键复制功能 -->
+              <div class="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-3.5">
+                  <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wide">题目内容</h3>
+                  <button
+                    @click="copyContent(question.questionContent, 'content')"
+                    class="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-all px-2.5 py-1 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200/60 active:scale-95"
+                  >
+                    <component :is="copiedStates.content ? Check : Copy" :size="12" />
+                    <span>{{ copiedStates.content ? '已复制' : '复制题目' }}</span>
+                  </button>
+                </div>
+                <div
+                  class="text-sm text-zinc-800 leading-relaxed post-content"
+                  v-html="renderedQuestionContent"
+                ></div>
               </div>
 
-              <!-- Answer Card -->
-              <div v-if="question.answer" class="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">解答笔记</h3>
-                <div class="text-sm text-zinc-700 leading-relaxed post-content" v-html="renderMarkdown(question.answer)"></div>
+              <!-- Answer Card: 优化渲染质量，增加复制解答功能 -->
+              <div
+                v-if="question.answer"
+                class="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-sm"
+              >
+                <div class="flex items-center justify-between mb-3.5">
+                  <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wide">解答笔记</h3>
+                  <button
+                    @click="copyContent(question.answer, 'answer')"
+                    class="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-all px-2.5 py-1 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200/60 active:scale-95"
+                  >
+                    <component :is="copiedStates.answer ? Check : Copy" :size="12" />
+                    <span>{{ copiedStates.answer ? '已复制' : '复制解答' }}</span>
+                  </button>
+                </div>
+                <div
+                  class="text-sm text-zinc-800 leading-relaxed post-content"
+                  v-html="renderedAnswerContent"
+                ></div>
               </div>
             </div>
 
             <!-- Right Column: Meta Info -->
             <div class="space-y-6">
-              <!-- Meta Card -->
-              <div class="bg-white border border-zinc-200 rounded-2xl p-6 space-y-4">
-                <div>
-                  <p class="text-xs text-zinc-400 mb-1">学科</p>
-                  <SubjectIcon :subject="question.subject" />
+              <!-- Meta Card: 重塑为高奢后台信息板，辅以细腻图标 -->
+              <div class="bg-white border border-zinc-200/80 rounded-2xl p-6 space-y-4 shadow-sm">
+                <div class="grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div>
+                    <p class="text-[11px] text-zinc-400 mb-1 flex items-center gap-1.5 font-bold">
+                      <BookOpen :size="12" class="text-zinc-400" /> 学科
+                    </p>
+                    <SubjectIcon :subject="question.subject" />
+                  </div>
+                  <div>
+                    <p class="text-[11px] text-zinc-400 mb-1 flex items-center gap-1.5 font-bold">
+                      <Gauge :size="12" class="text-zinc-400" /> 掌握程度
+                    </p>
+                    <MasteryBadge :level="question.masteryLevel" />
+                  </div>
+                  <div class="col-span-2 border-t border-zinc-50 pt-3">
+                    <p class="text-[11px] text-zinc-400 mb-1.5 flex items-center gap-1.5 font-bold">
+                      <AlertOctagon :size="12" class="text-zinc-400" /> 错因分类
+                    </p>
+                    <p
+                      class="text-xs font-bold text-zinc-700 bg-zinc-50 px-3 py-1.5 rounded-lg border border-zinc-100 inline-block"
+                    >
+                      {{ errorReasonLabel }}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p class="text-xs text-zinc-400 mb-1">掌握程度</p>
-                  <MasteryBadge :level="question.masteryLevel" />
-                </div>
-                <div>
-                  <p class="text-xs text-zinc-400 mb-1">错因分类</p>
-                  <p class="text-sm text-zinc-600">{{ errorReasonLabel }}</p>
-                </div>
-                <div>
-                  <p class="text-xs text-zinc-400 mb-1">添加时间</p>
-                  <p class="text-sm text-zinc-600">{{ formatDate(question.createdAt) }}</p>
-                </div>
-                <div v-if="question.lastReviewDate">
-                  <p class="text-xs text-zinc-400 mb-1">上次复习</p>
-                  <p class="text-sm text-zinc-600">{{ formatDaysSince(question.lastReviewDate) }}</p>
-                </div>
-                <div v-if="question.nextReviewDate">
-                  <p class="text-xs text-zinc-400 mb-1">下次复习</p>
-                  <p class="text-sm font-medium" :class="isDueSoon(question.nextReviewDate) ? 'text-red-600' : 'text-zinc-600'">
-                    {{ formatDate(question.nextReviewDate) }}
-                    <span v-if="isDueSoon(question.nextReviewDate)" class="text-xs text-red-500 ml-1">(待复习)</span>
-                  </p>
+
+                <div class="border-t border-zinc-100 pt-3 space-y-2 text-xs">
+                  <div class="flex justify-between items-center py-1">
+                    <span class="text-zinc-400 flex items-center gap-1"
+                      ><Calendar :size="12" /> 添加时间</span
+                    >
+                    <span class="text-zinc-600 font-semibold">{{
+                      formatDate(question.createdAt)
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="question.lastReviewDate"
+                    class="flex justify-between items-center py-1"
+                  >
+                    <span class="text-zinc-400 flex items-center gap-1"
+                      ><History :size="12" /> 上次复习</span
+                    >
+                    <span class="text-zinc-600 font-semibold">{{
+                      formatDaysSince(question.lastReviewDate)
+                    }}</span>
+                  </div>
+                  <div
+                    v-if="question.nextReviewDate"
+                    class="flex justify-between items-center py-1"
+                  >
+                    <span class="text-zinc-400 flex items-center gap-1"
+                      ><Bell :size="12" /> 下次复习</span
+                    >
+                    <span
+                      class="font-bold flex items-center gap-1"
+                      :class="isDueSoon(question.nextReviewDate) ? 'text-red-500' : 'text-zinc-600'"
+                    >
+                      {{ formatDate(question.nextReviewDate) }}
+                      <span
+                        v-if="isDueSoon(question.nextReviewDate)"
+                        class="text-[10px] bg-red-50 text-red-500 px-1.5 py-0.5 rounded border border-red-200 font-bold ml-1 animate-pulse"
+                        >待复习</span
+                      >
+                    </span>
+                  </div>
                 </div>
               </div>
 
               <!-- Knowledge Points Card -->
-              <div v-if="question.knowledgePoints?.length" class="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">关联知识点</h3>
+              <div
+                v-if="question.knowledgePoints?.length"
+                class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm"
+              >
+                <h3
+                  class="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3 flex items-center gap-1.5"
+                >
+                  <Tag :size="12" /> 关联知识点
+                </h3>
                 <div class="flex flex-wrap gap-2">
                   <span
                     v-for="kp in question.knowledgePoints"
                     :key="kp.id"
-                    class="inline-flex items-center px-3 py-1.5 bg-zinc-100 text-zinc-600 rounded-full text-xs font-medium"
+                    class="inline-flex items-center px-3 py-1.5 bg-zinc-50 text-zinc-600 rounded-xl text-xs font-bold border border-zinc-100 shadow-xs"
                   >
-                    <Tag :size="10" class="mr-1" />
                     {{ kp.name }}
                   </span>
                 </div>
               </div>
 
               <!-- Tags Card -->
-              <div v-if="question.tags?.length" class="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">标签</h3>
+              <div
+                v-if="question.tags?.length"
+                class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm"
+              >
+                <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3">标签</h3>
                 <div class="flex flex-wrap gap-1.5">
                   <span
                     v-for="tag in question.tags"
                     :key="tag"
-                    class="inline-flex items-center px-2.5 py-1 bg-zinc-50 text-zinc-500 rounded-lg text-xs"
+                    class="inline-flex items-center px-2.5 py-1 bg-zinc-100/50 text-zinc-500 rounded-lg text-xs font-medium border border-zinc-200/20"
                   >
                     #{{ tag }}
                   </span>
                 </div>
               </div>
 
-              <!-- Review History Card -->
-              <div class="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 class="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-3">复习进度</h3>
-                <div class="flex items-center gap-1.5 mb-2">
+              <!-- Review History Card: 复习进度可视化美化 -->
+              <div class="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
+                <h3
+                  class="text-xs font-bold text-zinc-400 uppercase tracking-wide mb-3 flex items-center gap-1.5"
+                >
+                  <RotateCcw :size="12" /> 复习进度
+                </h3>
+                <div class="flex items-center gap-1.5 mb-3">
                   <div
                     v-for="i in 6"
                     :key="i"
-                    class="flex-1 h-2 rounded-full transition-all"
-                    :class="i <= question.reviewCount ? 'bg-zinc-900' : 'bg-zinc-100'"
+                    class="flex-1 h-2.5 rounded-full transition-all duration-300"
+                    :class="
+                      i <= question.reviewCount
+                        ? 'bg-zinc-900 shadow-sm shadow-zinc-900/15'
+                        : 'bg-zinc-100'
+                    "
                   />
                 </div>
-                <p class="text-xs text-zinc-400">
-                  已复习 <span class="font-semibold text-zinc-600">{{ question.reviewCount }}</span> 次
-                  · 阶段: {{ reviewStage }}
-                </p>
+                <div class="flex justify-between items-center text-xs">
+                  <span class="text-zinc-500 font-medium"
+                    >已复习
+                    <strong class="text-zinc-900 font-bold">{{ question.reviewCount }}</strong>
+                    次</span
+                  >
+                  <span
+                    class="px-2 py-0.5 bg-zinc-100 text-zinc-700 font-bold rounded-md border border-zinc-200/50"
+                    >阶段: {{ reviewStage }}</span
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -175,25 +271,27 @@
 
         <!-- Edit Mode -->
         <template v-if="isEditing">
-          <div class="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5 animate-fade-in-up">
-            <h2 class="text-lg font-semibold text-zinc-900">编辑错题</h2>
+          <div
+            class="bg-white border border-zinc-200 rounded-2xl p-6 space-y-5 animate-fade-in-up shadow-sm"
+          >
+            <h2 class="text-lg font-bold text-zinc-900">编辑错题</h2>
 
             <!-- Question Content -->
             <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">题目内容</label>
+              <label class="block text-sm font-semibold text-zinc-700 mb-2">题目内容</label>
               <textarea
                 v-model="editForm.questionContent"
                 rows="5"
-                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-y"
+                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5 transition-all resize-y"
               />
             </div>
 
             <!-- Subject -->
             <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">学科</label>
+              <label class="block text-sm font-semibold text-zinc-700 mb-2">学科</label>
               <select
                 v-model="editForm.subject"
-                class="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5 transition-all"
               >
                 <option value="MATH">数学</option>
                 <option value="ENGLISH">英语</option>
@@ -204,21 +302,21 @@
 
             <!-- Notes / Answer -->
             <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">备注笔记</label>
+              <label class="block text-sm font-semibold text-zinc-700 mb-2">备注笔记</label>
               <textarea
                 v-model="editForm.answer"
                 rows="4"
                 placeholder="记录解题思路、答案、注意事项..."
-                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all resize-y"
+                class="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:bg-white focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5 transition-all resize-y"
               />
             </div>
 
             <!-- Mastery -->
             <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">掌握程度</label>
+              <label class="block text-sm font-semibold text-zinc-700 mb-2">掌握程度</label>
               <select
                 v-model="editForm.masteryLevel"
-                class="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-zinc-400 focus:ring-2 focus:ring-zinc-900/10 transition-all"
+                class="w-full px-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:outline-none focus:border-zinc-400 focus:ring-4 focus:ring-zinc-900/5 transition-all"
               >
                 <option value="NONE">完全不会</option>
                 <option value="LOW">不太熟练</option>
@@ -229,7 +327,7 @@
 
             <!-- Knowledge Points -->
             <div>
-              <label class="block text-sm font-medium text-zinc-700 mb-2">知识点</label>
+              <label class="block text-sm font-semibold text-zinc-700 mb-2">知识点</label>
               <KnowledgePointSelector v-model="editForm.knowledgePointIds" />
             </div>
 
@@ -267,47 +365,58 @@
       </div>
     </main>
 
-    <!-- Bottom Action Bar -->
+    <!-- Bottom Action Bar: 升级为桌面端悬浮胶囊，防止死板硬边缘，并留足安全间距 -->
     <div
       v-if="question && !isEditing"
-      class="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-zinc-200 px-4 py-3 z-40"
+      class="fixed bottom-0 lg:bottom-6 left-0 lg:left-1/2 lg:-translate-x-1/2 right-0 lg:right-auto w-full lg:max-w-4xl lg:w-[calc(100%-2rem)] bg-white/95 backdrop-blur-md border-t lg:border border-zinc-200/80 lg:rounded-2xl px-4 py-3.5 shadow-xl shadow-zinc-200/40 z-40"
+      :style="isMobile ? 'padding-bottom: calc(14px + env(safe-area-inset-bottom))' : ''"
     >
-      <div class="max-w-4xl mx-auto flex items-center gap-3">
+      <div class="flex items-center gap-3">
+        <!-- 标记已复习 -->
         <button
           @click="openReviewDialog"
           :disabled="reviewedToday"
-          class="flex-1 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-          :class="reviewedToday
-            ? 'bg-green-50 text-green-600 border border-green-200'
-            : 'bg-zinc-900 text-white hover:bg-zinc-800'"
+          class="flex-1 py-3 lg:py-3.5 rounded-xl text-sm font-bold transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+          :class="
+            reviewedToday
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+              : 'bg-zinc-900 text-white hover:bg-zinc-800 hover:shadow-md'
+          "
         >
           <CheckCircle2 v-if="reviewedToday" :size="16" />
           <RotateCcw v-else :size="16" />
           {{ reviewedToday ? '今日已复习' : '标记已复习' }}
         </button>
+
+        <!-- 客户端 PDF 导出 -->
         <button
           @click="exportPdf"
-          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 flex items-center gap-2"
+          class="py-3 lg:py-3.5 px-4 lg:px-5 rounded-xl text-sm font-bold border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition-all active:scale-95 flex items-center gap-2 shadow-sm"
         >
           <Download :size="16" />
-          客户端PDF
+          <span class="hidden sm:inline">客户端</span>PDF
         </button>
+
+        <!-- 服务端高质量 PDF 导出 -->
         <button
           v-if="isPremium"
           @click="exportServerSidePdf"
-          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-amber-300 bg-amber-50 hover:bg-amber-100 transition-all active:scale-95 flex items-center gap-2"
+          class="py-3 lg:py-3.5 px-4 lg:px-5 rounded-xl text-sm font-bold border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-all active:scale-95 flex items-center gap-2 shadow-sm"
         >
           <FileDown :size="16" />
-          高质量PDF
-          <span class="text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded ml-1 font-bold">VIP</span>
+          <span class="hidden sm:inline">高质量</span>PDF
+          <span class="text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded font-bold ml-1"
+            >VIP</span
+          >
         </button>
         <button
           v-else
           @click="showUpgradePrompt('高清PDF导出')"
-          class="py-2.5 px-4 rounded-xl text-sm font-medium border border-zinc-300 hover:bg-zinc-50 transition-all active:scale-95 flex items-center gap-2"
+          class="py-3 lg:py-3.5 px-4 lg:px-5 rounded-xl text-sm font-bold border border-zinc-200 bg-zinc-50 text-zinc-400 hover:bg-zinc-100 transition-all active:scale-95 flex items-center gap-2 shadow-sm cursor-not-allowed"
+          title="升级会员解锁高清 PDF 导出"
         >
           <FileDown :size="16" />
-          高质量PDF 🔒
+          <span class="hidden sm:inline">高质量</span>PDF 🔒
         </button>
       </div>
     </div>
@@ -325,8 +434,8 @@
 
             <!-- Mastery Slider -->
             <div class="mb-5">
-              <label class="block text-sm text-zinc-600 mb-2">
-                掌握程度: <span class="font-semibold text-zinc-900">{{ reviewMastery }}%</span>
+              <label class="block text-sm text-zinc-600 mb-2 font-semibold">
+                掌握程度: <span class="font-extrabold text-indigo-600">{{ reviewMastery }}%</span>
               </label>
               <input
                 v-model="reviewMastery"
@@ -334,9 +443,9 @@
                 min="0"
                 max="100"
                 step="5"
-                class="w-full accent-zinc-900"
+                class="w-full accent-indigo-600 h-1.5 bg-zinc-100 rounded-lg appearance-none cursor-pointer"
               />
-              <div class="flex justify-between text-xs text-zinc-400 mt-1">
+              <div class="flex justify-between text-[10px] text-zinc-400 mt-1.5 font-medium">
                 <span>完全不会</span>
                 <span>基本掌握</span>
                 <span>完全掌握</span>
@@ -345,23 +454,27 @@
 
             <!-- Correct / Incorrect Toggle -->
             <div class="mb-6">
-              <label class="block text-sm text-zinc-600 mb-2">作答结果</label>
+              <label class="block text-sm text-zinc-600 mb-2 font-semibold">作答结果</label>
               <div class="flex gap-2">
                 <button
                   @click="reviewIsCorrect = 1"
-                  class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all"
-                  :class="reviewIsCorrect === 1
-                    ? 'bg-green-50 text-green-700 border-green-300'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-green-300'"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all"
+                  :class="
+                    reviewIsCorrect === 1
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-sm shadow-emerald-100'
+                      : 'bg-white text-zinc-500 border-zinc-200 hover:border-emerald-300'
+                  "
                 >
                   ✓ 答对了
                 </button>
                 <button
                   @click="reviewIsCorrect = 0"
-                  class="flex-1 py-2.5 rounded-xl text-sm font-medium border transition-all"
-                  :class="reviewIsCorrect === 0
-                    ? 'bg-red-50 text-red-700 border-red-300'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-red-300'"
+                  class="flex-1 py-2.5 rounded-xl text-sm font-bold border transition-all"
+                  :class="
+                    reviewIsCorrect === 0
+                      ? 'bg-rose-50 text-rose-700 border-rose-300 shadow-sm shadow-rose-100'
+                      : 'bg-white text-zinc-500 border-zinc-200 hover:border-rose-300'
+                  "
                 >
                   ✗ 没答对
                 </button>
@@ -377,7 +490,7 @@
               </button>
               <button
                 @click="confirmReview"
-                class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-zinc-900 text-white hover:bg-zinc-800 transition-all active:scale-95"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-zinc-900 text-white hover:bg-zinc-800 transition-all active:scale-95"
               >
                 确认完成
               </button>
@@ -392,19 +505,19 @@
       <transition name="modal">
         <div
           v-if="showImageModal"
-          class="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4"
+          class="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 backdrop-blur-md"
           @click="showImageModal = false"
         >
           <button
             @click="showImageModal = false"
-            class="absolute top-4 right-4 p-2 bg-white/20 rounded-xl hover:bg-white/30 transition-colors"
+            class="absolute top-4 right-4 p-2.5 bg-white/15 rounded-xl hover:bg-white/25 transition-colors z-10"
           >
-            <X :size="24" class="text-white" />
+            <X :size="20" class="text-white" />
           </button>
           <img
             :src="question?.imageUrl ?? undefined"
             alt="题目图片"
-            class="max-w-full max-h-[90vh] object-contain rounded-2xl"
+            class="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl scale-[0.98] transition-transform duration-300"
             @click.stop
           />
         </div>
@@ -420,8 +533,10 @@
           @click.self="showDeleteModal = false"
         >
           <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl" @click.stop>
-            <div class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-              <Trash2 :size="24" class="text-red-500" />
+            <div
+              class="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4"
+            >
+              <Trash2 :size="22" class="text-red-500" />
             </div>
             <h3 class="text-lg font-bold text-zinc-900 text-center mb-2">确认删除</h3>
             <p class="text-sm text-zinc-500 text-center mb-6">
@@ -437,7 +552,7 @@
               <button
                 @click="deleteQuestion"
                 :disabled="deleting"
-                class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 disabled:opacity-50"
+                class="flex-1 py-2.5 rounded-xl text-sm font-bold bg-red-500 text-white hover:bg-red-600 transition-all active:scale-95 disabled:opacity-50"
               >
                 {{ deleting ? '删除中...' : '确认删除' }}
               </button>
@@ -480,7 +595,9 @@
                 <span class="text-xs text-zinc-600">导出PDF</span>
               </button>
             </div>
-            <p v-if="copySuccess" class="text-sm text-green-600 text-center">链接已复制到剪贴板！</p>
+            <p v-if="copySuccess" class="text-sm text-green-600 text-center">
+              链接已复制到剪贴板！
+            </p>
             <button
               @click="showShareModal = false"
               class="w-full mt-2 py-2.5 rounded-xl text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
@@ -498,7 +615,11 @@
         <div
           v-if="toast.show"
           class="fixed top-20 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-lg text-sm font-medium"
-          :class="toast.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-zinc-900 text-white'"
+          :class="
+            toast.type === 'success'
+              ? 'bg-green-50 text-green-700 border border-green-200'
+              : 'bg-zinc-900 text-white'
+          "
         >
           {{ toast.message }}
         </div>
@@ -508,11 +629,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  ArrowLeft, FileText, Pencil, Share2, Trash2, Tag, Download,
-  RotateCcw, CheckCircle2, X, Link, MessageSquare, FileDown,
+  ArrowLeft,
+  FileText,
+  Pencil,
+  Share2,
+  Trash2,
+  Tag,
+  Download,
+  RotateCcw,
+  CheckCircle2,
+  X,
+  Link,
+  MessageSquare,
+  FileDown,
+  Copy,
+  Check,
+  BookOpen,
+  Gauge,
+  AlertOctagon,
+  Calendar,
+  History,
+  Bell,
 } from 'lucide-vue-next'
 import SubjectIcon from '@/components/SubjectIcon.vue'
 import MasteryBadge from '@/components/MasteryBadge.vue'
@@ -521,13 +661,11 @@ import { formatDaysSince, getReviewStage } from '@/utils/ebbinghaus'
 import { exportQuestionsToPdf } from '@/utils/pdf-export'
 import { toMistakeNoteVO, masteryLevelToScore } from '@/utils/adapters'
 import { useMembership } from '@/composables/useMembership'
+import { renderMarkdown } from '@/utils/markdown'
+import { getNoteById, updateNote, deleteNote, completeReview, exportServerPdf } from '@/api/mistake'
+import type { MistakeNoteVO, MasteryLevel } from '@/types/mistake'
 
 const { isPremium, showUpgradePrompt } = useMembership()
-import { renderMarkdown } from '@/utils/markdown'
-import {
-  getNoteById, updateNote, deleteNote, completeReview, exportServerPdf,
-} from '@/api/mistake'
-import type { MistakeNoteVO, MasteryLevel } from '@/types/mistake'
 
 const router = useRouter()
 const route = useRoute()
@@ -543,6 +681,18 @@ const showDeleteModal = ref(false)
 const showShareModal = ref(false)
 const showReviewDialog = ref(false)
 const copySuccess = ref(false)
+
+// 响应式屏幕检测适配
+const isMobile = ref(false)
+const updateMobileState = () => {
+  isMobile.value = window.innerWidth < 1024
+}
+
+// 复制交互状态
+const copiedStates = reactive({
+  content: false,
+  answer: false,
+})
 
 // Review dialog state
 const reviewMastery = ref(60)
@@ -566,6 +716,27 @@ const reviewStage = computed(() => {
   return getReviewStage(question.value?.reviewCount || 0)
 })
 
+// ---- 核心修复：针对 LaTeX 在 Markdown 渲染环境中的 HTML 实体反转义保护 ----
+const cleanMarkdownContent = (text: string | null | undefined): string => {
+  if (!text) return ''
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x2F;/g, '/')
+}
+
+// 优化点：对题目内容与解答笔记都统一进行 Rerender 处理，确保 LaTeX 在两者中均能完美展现
+const renderedQuestionContent = computed(() => {
+  return renderMarkdown(cleanMarkdownContent(question.value?.questionContent || '未识别文本内容'))
+})
+
+const renderedAnswerContent = computed(() => {
+  return renderMarkdown(cleanMarkdownContent(question.value?.answer || '暂无解答笔记'))
+})
+
 function isDueSoon(dateStr: string | null) {
   if (!dateStr) return false
   return dateStr <= new Date().toISOString().split('T')[0]!
@@ -584,7 +755,9 @@ function showToast(message: string, type: 'success' | 'error' = 'success') {
   toast.message = message
   toast.type = type
   toast.show = true
-  setTimeout(() => { toast.show = false }, 2500)
+  setTimeout(() => {
+    toast.show = false
+  }, 2500)
 }
 
 function goBack() {
@@ -604,6 +777,33 @@ function startEdit() {
 
 function cancelEdit() {
   isEditing.value = false
+}
+
+const copyContent = async (text: string | null | undefined, type: 'content' | 'answer') => {
+  if (!text) return
+  try {
+    const rawText = cleanMarkdownContent(text)
+    await navigator.clipboard.writeText(rawText)
+    copiedStates[type] = true
+    showToast('已复制到剪切板')
+    setTimeout(() => {
+      copiedStates[type] = false
+    }, 2000)
+  } catch (err) {
+    const textarea = document.createElement('textarea')
+    textarea.value = cleanMarkdownContent(text)
+    textarea.style.position = 'fixed'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.select()
+    document.execCommand('copy')
+    document.body.removeChild(textarea)
+    copiedStates[type] = true
+    showToast('已复制到剪切板')
+    setTimeout(() => {
+      copiedStates[type] = false
+    }, 2000)
+  }
 }
 
 async function saveEdit() {
@@ -669,9 +869,14 @@ async function confirmReview() {
       // Update local from server response
       if (question.value) {
         question.value.masteryScore = result.data.masteryLevel
-        question.value.masteryLevel = result.data.masteryLevel > 70 ? 'HIGH'
-          : result.data.masteryLevel > 40 ? 'MEDIUM'
-          : result.data.masteryLevel > 0 ? 'LOW' : 'NONE'
+        question.value.masteryLevel =
+          result.data.masteryLevel > 70
+            ? 'HIGH'
+            : result.data.masteryLevel > 40
+              ? 'MEDIUM'
+              : result.data.masteryLevel > 0
+                ? 'LOW'
+                : 'NONE'
         question.value.reviewStage = result.data.reviewStage
         question.value.reviewCount = result.data.reviewCount
         question.value.nextReviewDate = result.data.nextReviewDate
@@ -695,7 +900,9 @@ async function copyLink() {
   try {
     await navigator.clipboard.writeText(`${window.location.origin}/questions/${question.value?.id}`)
     copySuccess.value = true
-    setTimeout(() => { copySuccess.value = false }, 2000)
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 2000)
   } catch {
     showToast('复制失败，请手动复制链接', 'error')
   }
@@ -765,6 +972,12 @@ async function fetchQuestion() {
 
 onMounted(() => {
   fetchQuestion()
+  updateMobileState()
+  window.addEventListener('resize', updateMobileState)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateMobileState)
 })
 </script>
 
@@ -803,7 +1016,7 @@ onMounted(() => {
   transform: translate(-50%, -5px);
 }
 
-/* Markdown content styling */
+/* ---- Markdown 与 KaTeX 对齐排版深层覆写 ---- */
 .post-content {
   overflow-x: auto;
   overflow-wrap: break-word;
@@ -814,40 +1027,83 @@ onMounted(() => {
   overflow-y: hidden;
   padding-bottom: 0.5rem;
   margin: 0.75rem 0;
+  max-width: 100%;
 }
-.post-content :deep(h1) { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.5rem; }
-.post-content :deep(h2) { font-size: 1.125rem; font-weight: 700; margin: 0.75rem 0 0.5rem; }
-.post-content :deep(h3) { font-size: 1rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
-.post-content :deep(p) { margin: 0.375rem 0; line-height: 1.7; }
+.post-content :deep(.katex) {
+  white-space: nowrap;
+}
+.post-content :deep(h1) {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.5rem;
+  color: #18181b;
+}
+.post-content :deep(h2) {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0.75rem 0 0.5rem;
+  color: #27272a;
+}
+.post-content :deep(h3) {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem;
+  color: #3f3f46;
+}
+.post-content :deep(p) {
+  margin: 0.5rem 0;
+  line-height: 1.75;
+  color: #27272a;
+}
 .post-content :deep(ul),
-.post-content :deep(ol) { padding-left: 1.25rem; margin: 0.375rem 0; }
-.post-content :deep(li) { margin: 0.25rem 0; }
+.post-content :deep(ol) {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.post-content :deep(li) {
+  margin: 0.35rem 0;
+  line-height: 1.7;
+  color: #3f3f46;
+}
 .post-content :deep(code) {
   background: #f4f4f5;
-  padding: 0.125rem 0.375rem;
-  border-radius: 0.25rem;
-  font-size: 0.8rem;
-  font-family: 'JetBrains Mono', monospace;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-weight: 600;
+  color: #0f172a;
 }
 .post-content :deep(pre) {
   background: #18181b;
   color: #e4e4e7;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
   overflow-x: auto;
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
 }
 .post-content :deep(pre code) {
   background: transparent;
   padding: 0;
   color: inherit;
+  font-weight: 500;
 }
 .post-content :deep(blockquote) {
-  border-left: 3px solid #d4d4d8;
-  padding-left: 0.75rem;
+  border-left: 4px solid #e4e4e7;
+  padding-left: 1rem;
   color: #71717a;
-  margin: 0.5rem 0;
+  background: #fafafa;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+  margin: 0.75rem 0;
 }
-.post-content :deep(strong) { font-weight: 600; }
-.post-content :deep(a) { color: #4f46e5; text-decoration: underline; }
+.post-content :deep(strong) {
+  font-weight: 700;
+  color: #09090b;
+}
+.post-content :deep(a) {
+  color: #4f46e5;
+  text-decoration: underline;
+}
 </style>
