@@ -1578,6 +1578,16 @@ onMounted(async () => {
   if (sessions.value.length > 0) {
     await switchSession(sessions.value[0].id)
   }
+
+  // 从知识库联动跳转：读取 query 参数自动发送问题
+  const qQuestion = route.query.question
+  if (qQuestion) {
+    const qSubject = route.query.subject
+    if (qSubject) selectedSubject.value = String(qSubject)
+    // 等会话就绪后自动发送
+    await nextTick()
+    sendMessage(String(qQuestion))
+  }
 })
 
 onBeforeUnmount(() => {

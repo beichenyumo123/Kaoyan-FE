@@ -114,6 +114,16 @@
                   {{ kw.trim() }}
                 </span>
               </div>
+              <!-- 联动 AI 答疑 -->
+              <div class="mt-3 pt-3 border-t border-zinc-100">
+                <button
+                  @click="$router.push({ path: '/ai/ask', query: { question: item.title, subject: item.subject } })"
+                  class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                >
+                  <MessageCircle class="w-3.5 h-3.5" />
+                  AI 深入答疑
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -153,7 +163,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ArrowLeft, BookOpen, Search } from 'lucide-vue-next'
+import { ArrowLeft, BookOpen, Search, MessageCircle } from 'lucide-vue-next'
 import { useMembership } from '@/composables/useMembership'
 import FeatureGate from '@/components/FeatureGate.vue'
 import QuotaIndicator from '@/components/QuotaIndicator.vue'
