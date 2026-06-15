@@ -1584,9 +1584,21 @@ onMounted(async () => {
   if (qQuestion) {
     const qSubject = route.query.subject
     if (qSubject) selectedSubject.value = String(qSubject)
-    // 等会话就绪后自动发送
     await nextTick()
     sendMessage(String(qQuestion))
+  }
+
+  // 从错题详情联动跳转：读取 sessionStorage 中的完整上下文
+  const ctxKey = route.query.context
+  if (ctxKey) {
+    const stored = sessionStorage.getItem(`ai_ctx_${ctxKey}`)
+    if (stored) {
+      sessionStorage.removeItem(`ai_ctx_${ctxKey}`)
+      const qSubject = route.query.subject
+      if (qSubject) selectedSubject.value = String(qSubject)
+      await nextTick()
+      sendMessage(stored)
+    }
   }
 })
 

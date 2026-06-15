@@ -89,13 +89,22 @@
               <div class="bg-white border border-zinc-200/80 rounded-2xl p-6 shadow-sm">
                 <div class="flex items-center justify-between mb-3.5">
                   <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wide">题目内容</h3>
-                  <button
-                    @click="copyContent(question.questionContent, 'content')"
-                    class="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-all px-2.5 py-1 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200/60 active:scale-95"
-                  >
-                    <component :is="copiedStates.content ? Check : Copy" :size="12" />
-                    <span>{{ copiedStates.content ? '已复制' : '复制题目' }}</span>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="addQuote(question.questionContent, '题目')"
+                      class="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-all px-2.5 py-1 rounded-xl hover:bg-indigo-50 border border-transparent hover:border-indigo-200/60 active:scale-95"
+                    >
+                      <MessageSquare :size="12" />
+                      <span>引用</span>
+                    </button>
+                    <button
+                      @click="copyContent(question.questionContent, 'content')"
+                      class="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-all px-2.5 py-1 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200/60 active:scale-95"
+                    >
+                      <component :is="copiedStates.content ? Check : Copy" :size="12" />
+                      <span>{{ copiedStates.content ? '已复制' : '复制题目' }}</span>
+                    </button>
+                  </div>
                 </div>
                 <div
                   class="text-sm text-zinc-800 leading-relaxed post-content"
@@ -110,13 +119,22 @@
               >
                 <div class="flex items-center justify-between mb-3.5">
                   <h3 class="text-xs font-bold text-zinc-400 uppercase tracking-wide">解答笔记</h3>
-                  <button
-                    @click="copyContent(question.answer, 'answer')"
-                    class="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-all px-2.5 py-1 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200/60 active:scale-95"
-                  >
-                    <component :is="copiedStates.answer ? Check : Copy" :size="12" />
-                    <span>{{ copiedStates.answer ? '已复制' : '复制解答' }}</span>
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="addQuote(question.answer!, '笔记')"
+                      class="text-xs text-indigo-500 hover:text-indigo-700 flex items-center gap-1 transition-all px-2.5 py-1 rounded-xl hover:bg-indigo-50 border border-transparent hover:border-indigo-200/60 active:scale-95"
+                    >
+                      <MessageSquare :size="12" />
+                      <span>引用</span>
+                    </button>
+                    <button
+                      @click="copyContent(question.answer, 'answer')"
+                      class="text-xs text-zinc-500 hover:text-zinc-800 flex items-center gap-1.5 transition-all px-2.5 py-1 rounded-xl hover:bg-zinc-50 border border-transparent hover:border-zinc-200/60 active:scale-95"
+                    >
+                      <component :is="copiedStates.answer ? Check : Copy" :size="12" />
+                      <span>{{ copiedStates.answer ? '已复制' : '复制解答' }}</span>
+                    </button>
+                  </div>
                 </div>
                 <div
                   class="text-sm text-zinc-800 leading-relaxed post-content"
@@ -625,6 +643,117 @@
         </div>
       </transition>
     </Teleport>
+
+    <!-- ── 文本选择浮窗：引述选中内容 ── -->
+    <Teleport to="body">
+      <div
+        v-if="selectionPopup.show"
+        class="fixed z-[150] -translate-x-1/2 -translate-y-full"
+        :style="{ left: selectionPopup.x + 'px', top: selectionPopup.y + 'px' }"
+      >
+        <button
+          @click="addQuote(selectionPopup.text, '选中文本'); selectionPopup.show = false"
+          class="flex items-center gap-1.5 text-xs font-bold px-3 py-2 bg-indigo-600 text-white rounded-xl shadow-lg hover:bg-indigo-700 active:scale-95 transition-all whitespace-nowrap"
+        >
+          <MessageSquare :size="12" />
+          引用选中内容
+        </button>
+      </div>
+    </Teleport>
+
+    <!-- ── FAB 悬浮按钮 ── -->
+    <button
+      v-if="!showAskPanel"
+      @click="showAskPanel = true"
+      class="fixed right-5 bottom-24 z-[100] w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30 hover:bg-indigo-700 hover:shadow-xl hover:-translate-y-1 active:scale-95 transition-all flex items-center justify-center"
+      title="向 AI 追问"
+    >
+      <MessageSquare :size="22" />
+      <span
+        v-if="quotedItems.length > 0"
+        class="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center"
+      >
+        {{ quotedItems.length }}
+      </span>
+    </button>
+
+    <!-- ── 底部滑出追问面板 ── -->
+    <Teleport to="body">
+      <Transition name="sheet">
+        <div
+          v-if="showAskPanel"
+          class="fixed inset-0 z-[120] flex flex-col justify-end"
+          @click.self="showAskPanel = false"
+        >
+          <div class="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" />
+          <div
+            class="relative bg-white rounded-t-3xl max-h-[75vh] flex flex-col shadow-2xl border-t border-zinc-200 overflow-hidden"
+          >
+            <!-- 拖拽条 -->
+            <div class="flex justify-center pt-3 pb-1.5 flex-shrink-0">
+              <div class="w-10 h-1 bg-zinc-300 rounded-full" />
+            </div>
+
+            <!-- 头部 -->
+            <div class="px-5 py-3 flex items-center justify-between border-b border-zinc-100 flex-shrink-0">
+              <h3 class="text-sm font-bold text-zinc-900 flex items-center gap-2">
+                <MessageSquare :size="16" class="text-indigo-500" />
+                向 AI 追问这道题
+              </h3>
+              <button
+                @click="showAskPanel = false"
+                class="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 transition-colors"
+              >
+                <X :size="18" />
+              </button>
+            </div>
+
+            <!-- 已引用上下文 chips -->
+            <div v-if="quotedItems.length > 0" class="px-5 py-3 border-b border-zinc-50 flex-shrink-0">
+              <p class="text-[10px] text-zinc-400 font-bold mb-2 uppercase tracking-wide">已引用的上下文</p>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="(item, idx) in quotedItems"
+                  :key="idx"
+                  class="inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-100"
+                >
+                  <span class="text-[10px] font-bold text-indigo-400">{{ item.label }}</span>
+                  <span class="max-w-[120px] truncate">{{ item.text.slice(0, 30) }}</span>
+                  <button
+                    @click="removeQuote(idx)"
+                    class="ml-0.5 text-indigo-400 hover:text-rose-500 transition-colors"
+                  >
+                    <X :size="12" />
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="p-5 flex-shrink-0 space-y-3">
+              <textarea
+                v-model="askInputText"
+                placeholder="输入你的疑问，AI 将结合题目和笔记为你解答..."
+                rows="3"
+                class="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm focus:outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all placeholder:text-zinc-400"
+                @keydown.enter.exact.prevent="sendToAi"
+              ></textarea>
+              <button
+                @click="sendToAi"
+                :disabled="!askInputText.trim() && quotedItems.length === 0"
+                class="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              >
+                <MessageSquare :size="16" />
+                发送给 AI 答疑
+              </button>
+              <p class="text-[10px] text-zinc-400 text-center">
+                题目、笔记和引用内容将一并发送至 AI 答疑，按 Enter 快捷发送
+              </p>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -970,14 +1099,85 @@ async function fetchQuestion() {
   loading.value = false
 }
 
+// ── AI 追问面板 ──
+const showAskPanel = ref(false)
+const askInputText = ref('')
+interface QuotedItem { text: string; label: string }
+const quotedItems = ref<QuotedItem[]>([])
+
+const addQuote = (text: string, label: string) => {
+  // 去重
+  if (quotedItems.value.some((q) => q.text === text)) return
+  quotedItems.value.push({ text, label })
+  showAskPanel.value = true
+}
+
+const removeQuote = (idx: number) => {
+  quotedItems.value.splice(idx, 1)
+}
+
+const sendToAi = () => {
+  if (!question.value) return
+  const parts: string[] = []
+  if (question.value.questionContent) {
+    parts.push(`【原题】${question.value.questionContent}`)
+  }
+  if (question.value.answer) {
+    parts.push(`【我的笔记】${question.value.answer}`)
+  }
+  if (quotedItems.value.length > 0) {
+    const quoted = quotedItems.value.map((q) => `> ${q.label}：${q.text}`).join('\n')
+    parts.push(`【引用内容】\n${quoted}`)
+  }
+  if (askInputText.value.trim()) {
+    parts.push(`【我的疑问】${askInputText.value.trim()}`)
+  }
+  const fullPrompt = parts.join('\n\n')
+
+  const ctxKey = Date.now().toString(36)
+  sessionStorage.setItem(`ai_ctx_${ctxKey}`, fullPrompt)
+  router.push({
+    path: '/ai/ask',
+    query: { context: ctxKey, subject: question.value.subject },
+  })
+}
+
+// 文本选择 → 弹出引用浮窗
+const selectionPopup = ref({ show: false, x: 0, y: 0, text: '' })
+const handleTextSelection = () => {
+  setTimeout(() => {
+    const sel = window.getSelection()
+    if (!sel || sel.isCollapsed || !sel.toString().trim()) {
+      selectionPopup.value.show = false
+      return
+    }
+    // 仅在 post-content 区域内触发
+    const anchor = sel.anchorNode
+    if (!anchor || !(anchor as HTMLElement).closest?.('.post-content')) {
+      selectionPopup.value.show = false
+      return
+    }
+    const range = sel.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    selectionPopup.value = {
+      show: true,
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10,
+      text: sel.toString().trim().slice(0, 200),
+    }
+  }, 50)
+}
+
 onMounted(() => {
   fetchQuestion()
   updateMobileState()
   window.addEventListener('resize', updateMobileState)
+  document.addEventListener('mouseup', handleTextSelection)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateMobileState)
+  document.removeEventListener('mouseup', handleTextSelection)
 })
 </script>
 
@@ -1105,5 +1305,19 @@ onBeforeUnmount(() => {
 .post-content :deep(a) {
   color: #4f46e5;
   text-decoration: underline;
+}
+
+/* ── 追问面板 sheet 过渡 ── */
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-enter-from,
+.sheet-leave-to {
+  opacity: 0;
+}
+.sheet-enter-from > div:last-child,
+.sheet-leave-to > div:last-child {
+  transform: translateY(100%);
 }
 </style>
