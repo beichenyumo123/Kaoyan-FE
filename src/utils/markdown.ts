@@ -57,6 +57,14 @@ export function renderMarkdown(content: string) {
   let processed = content
     .replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$')
     .replace(/\\\[([\s\S]*?)\\\]/g, '$$$$$1$$$$')
+  // 编码 markdown 链接 URL 中的空格和非 ASCII 字符
+  // CommonMark 规定链接目标不能含空格，markdown-it 会拒绝解析
+  // encodeURI 保留 / ? = & # 等 URI 结构字符，编码空格和中文
+  processed = processed.replace(
+    /\[([^\]]*)\]\(([^)]+)\)/g,
+    (_m: string, label: string, url: string) =>
+      `[${label}](${encodeURI(url.trim())})`,
+  )
   return md.render(processed)
 }
 

@@ -222,12 +222,20 @@ onMounted(() => {
     }))
   }
 
-  // 读取路由 query 参数，支持从社区推荐卡片跳转后自动搜索
+  // 读取路由 query 参数，支持从社区推荐卡片 / AI 干预详情跳转后自动搜索
   const qKeyword = route.query.keyword
   const qSubject = route.query.subject
   if (qKeyword || qSubject) {
-    keyword.value = String(qKeyword || '')
-    if (qSubject) selectedSubject.value = String(qSubject)
+    const kw = String(qKeyword || '')
+    // 智能识别：keyword 是已知学科名 → 设为 subject 筛选而非关键词搜索
+    const matchedSubject = subjects.find(s => s === kw)
+    if (matchedSubject && !qSubject) {
+      selectedSubject.value = matchedSubject
+      keyword.value = ''
+    } else {
+      keyword.value = kw
+      if (qSubject) selectedSubject.value = String(qSubject)
+    }
     handleSearch()
   }
 })

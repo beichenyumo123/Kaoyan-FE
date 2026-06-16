@@ -155,6 +155,14 @@
                 >
                   {{ task.importance }}
                 </span>
+                <button
+                  v-if="hasTaskDetail(task)"
+                  @click="handleViewTaskDetail(task)"
+                  class="flex-shrink-0 p-1 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  title="查看详情"
+                >
+                  <Eye class="w-3.5 h-3.5" />
+                </button>
               </div>
             </div>
 
@@ -196,29 +204,35 @@
                 :key="item.id"
                 class="p-4 rounded-xl border relative transition-all overflow-hidden"
                 :class="
-                  item.agentName === 'Psychology'
+                  item.agentName === '心理树洞'
                     ? 'bg-rose-50/40 border-rose-100/80 text-rose-950'
-                    : item.agentName === 'Behavior'
+                    : item.agentName === '行为分析师'
                     ? 'bg-blue-50/40 border-blue-100/80 text-blue-950'
-                    : 'bg-amber-50/40 border-amber-100/80 text-amber-950'
+                    : item.agentName === '铁面教官'
+                    ? 'bg-red-50/40 border-red-100/80 text-red-950'
+                    : 'bg-emerald-50/40 border-emerald-100/80 text-emerald-950'
                 "
               >
                 <div class="flex items-center justify-between mb-2">
                   <span class="inline-flex items-center gap-1 text-xs font-bold">
-                    <span v-if="item.agentName === 'Psychology'" class="flex items-center gap-1">
+                    <span v-if="item.agentName === '心理树洞'" class="flex items-center gap-1">
                       <Heart class="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                      心理师阿暖的温暖树洞
+                      {{ agentDisplay(item.agentName).label }}
                     </span>
-                    <span v-else-if="item.agentName === 'Behavior'" class="flex items-center gap-1">
+                    <span v-else-if="item.agentName === '行为分析师'" class="flex items-center gap-1">
                       <BarChart3 class="w-3.5 h-3.5 text-blue-500" />
-                      行为分析师的洞察
+                      {{ agentDisplay(item.agentName).label }}
+                    </span>
+                    <span v-else-if="item.agentName === '铁面教官'" class="flex items-center gap-1">
+                      <AlertTriangle class="w-3.5 h-3.5 text-red-500" />
+                      {{ agentDisplay(item.agentName).label }}
                     </span>
                     <span v-else class="flex items-center gap-1">
-                      <AlertTriangle class="w-3.5 h-3.5 text-amber-600" />
-                      铁面教官张教授的预警
+                      <LineChart class="w-3.5 h-3.5 text-emerald-500" />
+                      {{ agentDisplay(item.agentName).label }}
                     </span>
                   </span>
-                  <span class="text-[10px] text-zinc-400 font-medium">刚刚</span>
+                  <span class="text-[10px] text-zinc-400 font-medium">{{ item.createdAt ? '最近' : '刚刚' }}</span>
                 </div>
                 <p class="text-xs leading-relaxed text-zinc-700 font-medium pr-8">
                   " {{ item.interventionContent }} "
@@ -226,25 +240,43 @@
                 <div
                   class="mt-3 flex items-center justify-between border-t border-dashed pt-2.5"
                   :class="
-                    item.agentName === 'Psychology' ? 'border-rose-100' :
-                    item.agentName === 'Behavior' ? 'border-blue-100' :
-                    'border-amber-100'
+                    item.agentName === '心理树洞' ? 'border-rose-100' :
+                    item.agentName === '行为分析师' ? 'border-blue-100' :
+                    item.agentName === '铁面教官' ? 'border-red-100' :
+                    'border-emerald-100'
                   "
                 >
                   <div class="text-[10px] text-zinc-400 truncate max-w-[70%]">
                     原因: {{ item.triggerReason }}
                   </div>
-                  <button
-                    @click="handleReadIntervention(item.id)"
-                    class="text-[10px] font-bold px-2.5 py-1 bg-white border rounded-lg hover:bg-zinc-50 transition-colors"
-                    :class="
-                      item.agentName === 'Psychology' ? 'text-rose-600 border-rose-200' :
-                      item.agentName === 'Behavior' ? 'text-blue-600 border-blue-200' :
-                      'text-amber-700 border-amber-200'
-                    "
-                  >
-                    采纳建议并归档
-                  </button>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      v-if="hasInterventionDetail(item)"
+                      @click="handleViewInterventionDetail(item)"
+                      class="text-[10px] font-bold px-2.5 py-1 bg-white border rounded-lg hover:bg-zinc-50 transition-colors flex items-center gap-1"
+                      :class="
+                        item.agentName === '心理树洞' ? 'text-rose-600 border-rose-200' :
+                        item.agentName === '行为分析师' ? 'text-blue-600 border-blue-200' :
+                        item.agentName === '铁面教官' ? 'text-red-600 border-red-200' :
+                        'text-emerald-600 border-emerald-200'
+                      "
+                    >
+                      <Eye class="w-3 h-3" />
+                      查看详情
+                    </button>
+                    <button
+                      @click="handleReadIntervention(item.id)"
+                      class="text-[10px] font-bold px-2.5 py-1 bg-white border rounded-lg hover:bg-zinc-50 transition-colors"
+                      :class="
+                        item.agentName === '心理树洞' ? 'text-rose-600 border-rose-200' :
+                        item.agentName === '行为分析师' ? 'text-blue-600 border-blue-200' :
+                        item.agentName === '铁面教官' ? 'text-red-600 border-red-200' :
+                        'text-emerald-600 border-emerald-200'
+                      "
+                    >
+                      采纳建议并归档
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -300,21 +332,67 @@
 
     <!-- 周报弹窗 -->
     <WeeklyReportModal :visible="showReportModal" @close="showReportModal = false" />
+
+    <!-- 通用 Agent 详情弹窗 -->
+    <Teleport to="body">
+      <div
+        v-if="detailModal.visible"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      >
+        <!-- 遮罩 -->
+        <div
+          class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+          @click="closeDetailModal"
+        />
+        <!-- 弹窗 -->
+        <div class="relative bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[80vh] flex flex-col">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
+            <h3 class="text-sm font-bold text-zinc-900 truncate pr-4">{{ detailModal.title }}</h3>
+            <button
+              @click="closeDetailModal"
+              class="p-1.5 rounded-lg hover:bg-zinc-100 text-zinc-400 hover:text-zinc-600 transition-colors flex-shrink-0"
+            >
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+          <div class="overflow-y-auto px-6 py-4 flex-1">
+            <div
+              v-if="detailModal.detailMarkdown"
+              class="post-content text-sm text-zinc-700 leading-relaxed"
+              v-html="renderMarkdown(detailModal.detailMarkdown)"
+            />
+            <div v-else class="text-center py-8 text-zinc-400 text-xs">
+              暂无详细内容，点击下方按钮查看
+            </div>
+          </div>
+          <div v-if="detailModal.linkTarget" class="px-6 py-4 border-t border-zinc-100">
+            <button
+              @click="navigateTo(detailModal.linkTarget)"
+              class="w-full py-2.5 rounded-xl text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+            >
+              {{ detailModal.linkLabel || '查看详情 →' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Sparkles, Brain, CheckCircle2, AlertTriangle, Heart,
   LineChart, RotateCcw, Flame, Bell, ChevronRight,
   Calendar, Hourglass, CheckSquare, Square, ArrowLeft,
-  MessageCircle, BookOpen, BarChart3,
+  MessageCircle, BookOpen, BarChart3, X, Eye,
 } from 'lucide-vue-next'
 import { request } from '@/api'
 import WeeklyReportModal from '@/components/WeeklyReportModal.vue'
 import { useMembership } from '@/composables/useMembership'
+import { renderMarkdown } from '@/utils/markdown'
+import type { AiTask, AiIntervention, DetailModalState } from '@/types/ai'
 
 const { isPremium } = useMembership()
 
@@ -324,8 +402,8 @@ const loadingTasks = ref(false)
 const loadingInterventions = ref(false)
 const showReportModal = ref(false)
 
-const tasks = ref([])
-const interventions = ref([])
+const tasks = ref<AiTask[]>([])
+const interventions = ref<AiIntervention[]>([])
 
 const studyStats = ref({
   continuousDays: 0,
@@ -368,7 +446,7 @@ const fetchTasks = async () => {
 }
 
 // 勾选完成任务
-const handleCompleteTask = async (taskId) => {
+const handleCompleteTask = async (taskId: number) => {
   try {
     const res = await request(`/api/ai/tasks/${taskId}/complete`, { method: 'POST' })
     if (res.code === 200) {
@@ -412,7 +490,7 @@ const fetchInterventions = async () => {
 }
 
 // 标记干预消息已读
-const handleReadIntervention = async (id) => {
+const handleReadIntervention = async (id: number) => {
   try {
     const res = await request(`/api/ai/interventions/${id}/read`, { method: 'PUT' })
     if (res.code === 200) {
@@ -453,6 +531,75 @@ const recalculateStats = () => {
 
 const goBack = () => router.back()
 
+// ─── 智能体名称映射 ────────────────────────────────────
+const agentDisplay = (agentName: string) => {
+  const map: Record<string, { label: string; sidebarAgentId: string }> = {
+    '行为分析师': { label: '行为分析师 · 洞察', sidebarAgentId: 'reviewer' },
+    '心理树洞':   { label: '心理树洞 · 阿暖',   sidebarAgentId: 'psychology' },
+    '铁面教官':   { label: '铁面教官 · 严师',    sidebarAgentId: 'supervisor' },
+    '透视专家':   { label: '透视专家 · 镜言',    sidebarAgentId: 'reviewer' },
+  }
+  return map[agentName] ?? { label: agentName, sidebarAgentId: 'unknown' }
+}
+
+// ─── 通用详情弹窗 ────────────────────────────────────
+const detailModal = ref<DetailModalState>({
+  visible: false,
+  title: '',
+  detailMarkdown: '',
+  linkTarget: '',
+  linkLabel: '',
+})
+
+const openDetailModal = (opts: { title: string; detailMarkdown?: string | null; linkTarget?: string | null; linkLabel?: string | null }) => {
+  detailModal.value = {
+    visible: true,
+    title: opts.title,
+    detailMarkdown: opts.detailMarkdown || '',
+    linkTarget: opts.linkTarget || '',
+    linkLabel: opts.linkLabel || '查看详情 →',
+  }
+}
+
+const closeDetailModal = () => {
+  detailModal.value.visible = false
+}
+
+const navigateTo = (target: string) => {
+  closeDetailModal()
+  router.push(target)
+}
+
+// ─── 任务/干预 查看详情入口 ──────────────────────────────
+const handleViewTaskDetail = (task: AiTask) => {
+  if (task.detailMarkdown || task.linkTarget) {
+    openDetailModal({
+      title: task.taskContent,
+      detailMarkdown: task.detailMarkdown,
+      linkTarget: task.linkTarget,
+      linkLabel: task.linkLabel,
+    })
+  }
+}
+
+const handleViewInterventionDetail = (item: AiIntervention) => {
+  if (item.detailMarkdown || item.linkTarget) {
+    openDetailModal({
+      title: agentDisplay(item.agentName).label,
+      detailMarkdown: item.detailMarkdown,
+      linkTarget: item.linkTarget,
+      linkLabel: item.linkLabel,
+    })
+  } else if (item.agentName === '行为分析师') {
+    // Fallback：后端暂未提供 detailMarkdown，用干预内容作为问题跳转 AI 答疑
+    const q = encodeURIComponent(item.interventionContent)
+    router.push(`/ai/ask?question=${q}`)
+  }
+}
+
+const hasTaskDetail = (task: AiTask) => !!(task.detailMarkdown || task.linkTarget)
+const hasInterventionDetail = (item: AiIntervention) => !!(item.detailMarkdown || item.linkTarget || item.agentName === '行为分析师')
+
 onMounted(() => {
   const token = localStorage.getItem('token')
   if (!token) {
@@ -481,5 +628,46 @@ onMounted(() => {
 }
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #d4d4d8;
+}
+
+/* ─── Agent 详情弹窗 — markdown 渲染 ─── */
+.post-content :deep(h1) { font-size: 1.125rem; font-weight: 700; margin: 0.75rem 0 0.5rem; }
+.post-content :deep(h2) { font-size: 1rem; font-weight: 700; margin: 0.625rem 0 0.375rem; }
+.post-content :deep(h3) { font-size: 0.9rem; font-weight: 600; margin: 0.5rem 0 0.25rem; }
+.post-content :deep(p) { margin: 0.375rem 0; }
+.post-content :deep(ul),
+.post-content :deep(ol) { padding-left: 1.25rem; margin: 0.375rem 0; }
+.post-content :deep(li) { margin: 0.125rem 0; }
+.post-content :deep(code) {
+  background: #f4f4f5;
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+}
+.post-content :deep(pre) {
+  background: #18181b;
+  color: #e4e4e7;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+.post-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: inherit;
+}
+.post-content :deep(strong) { font-weight: 600; }
+.post-content :deep(a) { color: #4f46e5; text-decoration: underline; }
+.post-content :deep(table) { width: 100%; border-collapse: collapse; margin: 0.5rem 0; font-size: 0.75rem; }
+.post-content :deep(th) { background: #f4f4f5; padding: 0.375rem 0.5rem; text-align: left; font-weight: 600; border: 1px solid #e4e4e7; }
+.post-content :deep(td) { padding: 0.375rem 0.5rem; border: 1px solid #e4e4e7; }
+.post-content :deep(blockquote) {
+  border-left: 3px solid #818cf8;
+  padding: 0.25rem 0.75rem;
+  margin: 0.5rem 0;
+  color: #52525b;
+  background: #fafafa;
+  border-radius: 0 0.375rem 0.375rem 0;
 }
 </style>
